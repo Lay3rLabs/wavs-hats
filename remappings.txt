@@ -4,3 +4,7 @@ forge-std=node_modules/forge-std/src
 
 contracts/=src/contracts
 interfaces/=src/interfaces
+@hats-module/=lib/hats-module
+hats-module/=lib/hats-module
+solady/=lib/hats-module/lib/solady/src
+hats-protocol/=lib/hats-protocol/src

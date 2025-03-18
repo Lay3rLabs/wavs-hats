@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IHatsToggle} from "hats-protocol/src/Interfaces/IHatsToggle.sol";
+import {IHatsToggle} from "hats-protocol/Interfaces/IHatsToggle.sol";
 import {IWavsServiceHandler} from "@wavs/interfaces/IWavsServiceHandler.sol";
 import {ITypes} from "./ITypes.sol";
 

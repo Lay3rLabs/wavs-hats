@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IHatsEligibility} from "hats-protocol/src/Interfaces/IHatsEligibility.sol";
+import {IHatsEligibility} from "hats-protocol/Interfaces/IHatsEligibility.sol";
 import {IWavsServiceHandler} from "@wavs/interfaces/IWavsServiceHandler.sol";
 import {ITypes} from "./ITypes.sol";
 
@@ -15,13 +15,11 @@ interface IHatsEligibilityServiceHandler is
     ITypes
 {
     /**
-     * @notice Struct to store wearer status information with a trigger ID
-     * @param triggerId Unique identifier for the trigger
+     * @notice Struct to store trigger data
      * @param wearer The address of the wearer
      * @param hatId The ID of the hat
      */
-    struct EligibilityRequest {
-        TriggerId triggerId;
+    struct TriggerData {
         address wearer;
         uint256 hatId;
     }

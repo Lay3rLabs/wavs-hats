@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IHats} from "hats-protocol/src/Interfaces/IHats.sol";
+import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IHatsEligibilityServiceHandler} from "../interfaces/IHatsEligibilityServiceHandler.sol";
 import {IHatsToggleServiceHandler} from "../interfaces/IHatsToggleServiceHandler.sol";
-import {IHatsAVSTrigger} from "../interfaces/IHatsAVSTrigger.sol";
 import {ITypes} from "../interfaces/ITypes.sol";
 
 /**
@@ -21,9 +20,6 @@ contract HatsAVSManager {
     /// @notice The toggle service handler
     IHatsToggleServiceHandler public immutable toggleHandler;
 
-    /// @notice The trigger contract
-    IHatsAVSTrigger public immutable trigger;
-
     /// @notice Minimum time between eligibility checks for a wearer and hat
     uint256 public immutable eligibilityCheckCooldown;
 
@@ -36,27 +32,6 @@ contract HatsAVSManager {
 
     /// @notice Mapping to track the last status check for a hat
     mapping(uint256 _hatId => uint256 _lastCheck) public lastStatusChecks;
-
-    /**
-     * @notice Emitted when a hat wearer's eligibility is checked
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     * @param eligible Whether the wearer is eligible to wear the hat
-     * @param standing Whether the wearer is in good standing
-     */
-    event WearerEligibilityChecked(
-        address indexed wearer,
-        uint256 indexed hatId,
-        bool eligible,
-        bool standing
-    );
-
-    /**
-     * @notice Emitted when a hat's status is checked
-     * @param hatId The ID of the hat
-     * @param active Whether the hat is active
-     */
-    event HatStatusChecked(uint256 indexed hatId, bool active);
 
     /**
      * @notice Emitted when an eligibility check is requested
@@ -85,7 +60,6 @@ contract HatsAVSManager {
      * @param _hats The Hats protocol contract
      * @param _eligibilityHandler The eligibility service handler
      * @param _toggleHandler The toggle service handler
-     * @param _trigger The trigger contract
      * @param _eligibilityCheckCooldown Minimum time between eligibility checks
      * @param _statusCheckCooldown Minimum time between status checks
      */
@@ -93,14 +67,12 @@ contract HatsAVSManager {
         IHats _hats,
         IHatsEligibilityServiceHandler _eligibilityHandler,
         IHatsToggleServiceHandler _toggleHandler,
-        IHatsAVSTrigger _trigger,
         uint256 _eligibilityCheckCooldown,
         uint256 _statusCheckCooldown
     ) {
         hats = _hats;
         eligibilityHandler = _eligibilityHandler;
         toggleHandler = _toggleHandler;
-        trigger = _trigger;
         eligibilityCheckCooldown = _eligibilityCheckCooldown;
         statusCheckCooldown = _statusCheckCooldown;
     }

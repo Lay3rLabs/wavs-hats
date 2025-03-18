@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IHatsToggleServiceHandler} from "../interfaces/IHatsToggleServiceHandler.sol";
+import {HatsToggleModule} from "@hats-module/src/HatsToggleModule.sol";
+import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
-import {IHatsAVSTrigger} from "../interfaces/IHatsAVSTrigger.sol";
+import {ITypes} from "../interfaces/ITypes.sol";
+import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
  * @title HatsToggleServiceHandler
- * @notice A WAVS service handler that implements the IHatsToggle interface
+ * @notice A WAVS service handler that implements a Hats toggle module
  */
-contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
+contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
+    /// @notice The next trigger ID to be assigned
+    TriggerId public nextTriggerId;
+
+    /// @notice Mapping of trigger IDs to trigger data
+    mapping(TriggerId _triggerId => uint256 _hatId) internal _triggerData;
+
     /// @notice Mapping of hat ID to the latest result
     mapping(uint256 _hatId => StatusResult _result) internal _statusResults;
 
@@ -17,23 +25,61 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
     mapping(uint256 _hatId => uint256 _timestamp)
         internal _lastUpdateTimestamps;
 
-    /// @notice Trigger contract for creating status check triggers
-    IHatsAVSTrigger internal _triggerContract;
-
     /// @notice Service manager instance
-    IWavsServiceManager private _serviceManager;
+    address private immutable _serviceManagerAddr;
 
     /**
-     * @notice Initialize the contract
-     * @param serviceManager The service manager instance
-     * @param triggerContract The trigger contract
+     * @notice Struct to store the result of a status check
+     * @param triggerId Unique identifier for the trigger
+     * @param active Whether the hat is active
+     */
+    struct StatusResult {
+        TriggerId triggerId;
+        bool active;
+    }
+
+    /**
+     * @notice Emitted when a new status check is requested
+     * @param triggerId The ID of the trigger
+     * @param hatId The ID of the hat
+     */
+    event StatusCheckRequested(
+        TriggerId indexed triggerId,
+        uint256 indexed hatId
+    );
+
+    /**
+     * @notice Emitted when a status check result is received
+     * @param triggerId The ID of the trigger
+     * @param active Whether the hat is active
+     */
+    event StatusResultReceived(TriggerId indexed triggerId, bool active);
+
+    /**
+     * @notice Initialize the module implementation
+     * @param _hats The Hats protocol contract - passed to factory, not used in constructor
+     * @param _serviceManager The service manager address
+     * @param _version The version of the module
      */
     constructor(
-        IWavsServiceManager serviceManager,
-        IHatsAVSTrigger triggerContract
-    ) {
-        _serviceManager = serviceManager;
-        _triggerContract = triggerContract;
+        IHats _hats,
+        address _serviceManager,
+        string memory _version
+    ) HatsModule(_version) {
+        // Store service manager reference
+        _serviceManagerAddr = _serviceManager;
+    }
+
+    /**
+     * @notice Initialize the module instance with config
+     * @param _initData The initialization data
+     * @dev This is called by the factory during deployment
+     */
+    function _setUp(bytes calldata _initData) internal override {
+        // If there's initialization data, decode it
+        if (_initData.length > 0) {
+            // Leave this for potential future use
+        }
     }
 
     /**
@@ -43,9 +89,16 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
      */
     function requestStatusCheck(
         uint256 _hatId
-    ) external override returns (TriggerId triggerId) {
-        // Create a trigger for the status check
-        triggerId = _triggerContract.createStatusTrigger(_hatId);
+    ) external returns (TriggerId triggerId) {
+        // Input validation
+        require(_hatId > 0, "Invalid hat ID");
+
+        // Create new trigger ID
+        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        triggerId = nextTriggerId;
+
+        // Store trigger data
+        _triggerData[triggerId] = _hatId;
 
         // Emit the event
         emit StatusCheckRequested(triggerId, _hatId);
@@ -59,13 +112,13 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
     function handleSignedData(
         bytes calldata _data,
         bytes calldata _signature
-    ) external override {
+    ) external {
         // Validate the data and signature
         require(_data.length > 0, "Empty data");
         require(_signature.length > 0, "Empty signature");
 
         // Validate through service manager
-        _serviceManager.validate(_data, _signature);
+        IWavsServiceManager(_serviceManagerAddr).validate(_data, _signature);
 
         // Decode the result
         StatusResult memory result = abi.decode(_data, (StatusResult));
@@ -73,11 +126,11 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
         // Verify triggerId is valid
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
-        // Get the trigger details
-        uint256 hatId = _getTriggerDetails(result.triggerId);
+        // Get the hat ID from trigger data
+        uint256 hatId = _triggerData[result.triggerId];
 
         // Verify hat ID is valid
-        require(hatId > 0, "Invalid hat ID");
+        require(hatId > 0, "Trigger data not found");
 
         // Update the status result
         _statusResults[hatId] = result;
@@ -95,7 +148,7 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
      */
     function getLatestStatusResult(
         uint256 _hatId
-    ) external view override returns (bool active, uint256 timestamp) {
+    ) external view returns (bool active, uint256 timestamp) {
         // Get the result and timestamp
         StatusResult memory result = _statusResults[_hatId];
         timestamp = _lastUpdateTimestamps[_hatId];
@@ -108,27 +161,10 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
      * @param _hatId The id of the hat in question
      * @return Whether the hat is active
      */
-    function getHatStatus(
-        uint256 _hatId
-    ) external view override returns (bool) {
+    function getHatStatus(uint256 _hatId) public view override returns (bool) {
         // Get the result
         StatusResult memory result = _statusResults[_hatId];
 
         return result.active;
-    }
-
-    /**
-     * @notice Get the trigger details from the trigger contract
-     * @param _triggerId The ID of the trigger
-     * @return hatId The ID of the hat
-     */
-    function _getTriggerDetails(
-        TriggerId _triggerId
-    ) internal view returns (uint256 hatId) {
-        // Get the trigger data from the trigger contract
-        (, bytes memory data) = _triggerContract.triggersById(_triggerId);
-
-        // Decode the data
-        hatId = abi.decode(data, (uint256));
     }
 }

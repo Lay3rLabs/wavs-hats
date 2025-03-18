@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IHatsEligibilityServiceHandler} from "../interfaces/IHatsEligibilityServiceHandler.sol";
+import {HatsEligibilityModule} from "@hats-module/src/HatsEligibilityModule.sol";
+import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
-import {IHatsAVSTrigger} from "../interfaces/IHatsAVSTrigger.sol";
+import {ITypes} from "../interfaces/ITypes.sol";
+import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
  * @title HatsEligibilityServiceHandler
- * @notice A WAVS service handler that implements the IHatsEligibility interface
+ * @notice A WAVS service handler that implements a Hats eligibility module
  */
-contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
+contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
+    /// @notice The next trigger ID to be assigned
+    TriggerId public nextTriggerId;
+
+    /// @notice Mapping of trigger IDs to trigger data
+    mapping(TriggerId _triggerId => TriggerData _data) internal _triggerData;
+
     /// @notice Mapping of wearer address and hat ID to the latest result
     mapping(address _wearer => mapping(uint256 _hatId => EligibilityResult _result))
         internal _eligibilityResults;
@@ -18,23 +26,80 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
     mapping(address _wearer => mapping(uint256 _hatId => uint256 _timestamp))
         internal _lastUpdateTimestamps;
 
-    /// @notice Trigger contract for creating eligibility check triggers
-    IHatsAVSTrigger internal _triggerContract;
-
     /// @notice Service manager instance
-    IWavsServiceManager private _serviceManager;
+    address private immutable _serviceManagerAddr;
 
     /**
-     * @notice Initialize the contract
-     * @param serviceManager The service manager instance
-     * @param triggerContract The trigger contract
+     * @notice Struct to store trigger data
+     * @param wearer The address of the wearer
+     * @param hatId The ID of the hat
+     */
+    struct TriggerData {
+        address wearer;
+        uint256 hatId;
+    }
+
+    /**
+     * @notice Struct to store the result of an eligibility check
+     * @param triggerId Unique identifier for the trigger
+     * @param eligible Whether the wearer is eligible to wear the hat
+     * @param standing Whether the wearer is in good standing
+     */
+    struct EligibilityResult {
+        TriggerId triggerId;
+        bool eligible;
+        bool standing;
+    }
+
+    /**
+     * @notice Emitted when a new eligibility check is requested
+     * @param triggerId The ID of the trigger
+     * @param wearer The address of the wearer
+     * @param hatId The ID of the hat
+     */
+    event EligibilityCheckRequested(
+        TriggerId indexed triggerId,
+        address indexed wearer,
+        uint256 indexed hatId
+    );
+
+    /**
+     * @notice Emitted when an eligibility check result is received
+     * @param triggerId The ID of the trigger
+     * @param eligible Whether the wearer is eligible to wear the hat
+     * @param standing Whether the wearer is in good standing
+     */
+    event EligibilityResultReceived(
+        TriggerId indexed triggerId,
+        bool eligible,
+        bool standing
+    );
+
+    /**
+     * @notice Initialize the module implementation
+     * @param _hats The Hats protocol contract - passed to factory, not used in constructor
+     * @param _serviceManager The service manager address
+     * @param _version The version of the module
      */
     constructor(
-        IWavsServiceManager serviceManager,
-        IHatsAVSTrigger triggerContract
-    ) {
-        _serviceManager = serviceManager;
-        _triggerContract = triggerContract;
+        IHats _hats,
+        address _serviceManager,
+        string memory _version
+    ) HatsModule(_version) {
+        // Store service manager reference
+        _serviceManagerAddr = _serviceManager;
+    }
+
+    /**
+     * @notice Initialize the module instance with config
+     * @param _initData The initialization data (unused in this implementation)
+     * @dev This is called by the factory during deployment
+     */
+    function _setUp(bytes calldata _initData) internal override {
+        // If there's initialization data, decode it
+        if (_initData.length > 0) {
+            // Leave this for potential future use
+        }
     }
 
     /**
@@ -46,9 +111,17 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
     function requestEligibilityCheck(
         address _wearer,
         uint256 _hatId
-    ) external override returns (TriggerId triggerId) {
-        // Create a trigger for the eligibility check
-        triggerId = _triggerContract.createEligibilityTrigger(_wearer, _hatId);
+    ) external returns (TriggerId triggerId) {
+        // Input validation
+        require(_wearer != address(0), "Invalid wearer address");
+        require(_hatId > 0, "Invalid hat ID");
+
+        // Create new trigger ID
+        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        triggerId = nextTriggerId;
+
+        // Store trigger data
+        _triggerData[triggerId] = TriggerData({wearer: _wearer, hatId: _hatId});
 
         // Emit the event
         emit EligibilityCheckRequested(triggerId, _wearer, _hatId);
@@ -62,13 +135,13 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
     function handleSignedData(
         bytes calldata _data,
         bytes calldata _signature
-    ) external override {
+    ) external {
         // Validate the data and signature
         require(_data.length > 0, "Empty data");
         require(_signature.length > 0, "Empty signature");
 
         // Validate through service manager
-        _serviceManager.validate(_data, _signature);
+        IWavsServiceManager(_serviceManagerAddr).validate(_data, _signature);
 
         // Decode the result
         EligibilityResult memory result = abi.decode(
@@ -79,16 +152,16 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
         // Verify triggerId is valid
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
-        // Get the trigger details
-        (address wearer, uint256 hatId) = _getTriggerDetails(result.triggerId);
+        // Get the trigger data
+        TriggerData memory triggerData = _triggerData[result.triggerId];
 
-        // Verify addresses are valid
-        require(wearer != address(0), "Invalid wearer address");
-        require(hatId > 0, "Invalid hat ID");
+        // Verify data exists
+        require(triggerData.wearer != address(0), "Trigger data not found");
 
         // Update the eligibility result
-        _eligibilityResults[wearer][hatId] = result;
-        _lastUpdateTimestamps[wearer][hatId] = block.timestamp;
+        _eligibilityResults[triggerData.wearer][triggerData.hatId] = result;
+        _lastUpdateTimestamps[triggerData.wearer][triggerData.hatId] = block
+            .timestamp;
 
         // Emit the event
         emit EligibilityResultReceived(
@@ -109,12 +182,7 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
     function getLatestEligibilityResult(
         address _wearer,
         uint256 _hatId
-    )
-        external
-        view
-        override
-        returns (bool eligible, bool standing, uint256 timestamp)
-    {
+    ) external view returns (bool eligible, bool standing, uint256 timestamp) {
         // Get the result and timestamp
         EligibilityResult memory result = _eligibilityResults[_wearer][_hatId];
         timestamp = _lastUpdateTimestamps[_wearer][_hatId];
@@ -133,27 +201,11 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
     function getWearerStatus(
         address _wearer,
         uint256 _hatId
-    ) external view override returns (bool eligible, bool standing) {
+    ) public view override returns (bool eligible, bool standing) {
         // Get the result
         EligibilityResult memory result = _eligibilityResults[_wearer][_hatId];
 
         eligible = result.eligible;
         standing = result.standing;
-    }
-
-    /**
-     * @notice Get the trigger details from the trigger contract
-     * @param _triggerId The ID of the trigger
-     * @return wearer The address of the wearer
-     * @return hatId The ID of the hat
-     */
-    function _getTriggerDetails(
-        TriggerId _triggerId
-    ) internal view returns (address wearer, uint256 hatId) {
-        // Get the trigger data from the trigger contract
-        (, bytes memory data) = _triggerContract.triggersById(_triggerId);
-
-        // Decode the data
-        (wearer, hatId) = abi.decode(data, (address, uint256));
     }
 }
