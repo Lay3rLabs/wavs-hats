@@ -1,191 +1,168 @@
-# [WAVS](https://docs.wavs.xyz) Monorepo Template
+# Hats Protocol WAVS AVS Integration
 
-**Template for getting started with developing WAVS applications**
+This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-protocol) with [WAVS (WASI Autonomous Verifiable Services)](https://docs.layer.xyz/wavs/overview) to enable automated hat eligibility checks and hat status management.
 
-A template for developing WebAssembly AVS applications using Rust and Solidity, configured for Windows *WSL*, Linux, and MacOS. The sample oracle service fetches the current price of a cryptocurrency from [CoinMarketCap](https://coinmarketcap.com) and saves it on chain.
+## Overview
 
-## System Requirements
+The integration consists of:
 
-<details>
-<summary>Core (Docker, Compose, Make, JQ, Node v21+)</summary>
+1. **HatsEligibilityServiceHandler**: Implements `IHatsEligibility` to check if an address is eligible to wear a hat using WAVS.
+2. **HatsToggleServiceHandler**: Implements `IHatsToggle` to determine if a hat should be active or inactive using WAVS.
+3. **HatsAVSTrigger**: Creates triggers for hat eligibility and status checks.
+4. **HatsAVSManager**: Central contract that orchestrates the integration.
 
-### Docker
-- **MacOS**: `brew install --cask docker`
-- **Linux**: `sudo apt -y install docker.io`
-- **Windows WSL**: [docker desktop wsl](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2) & `sudo chmod 666 /var/run/docker.sock`
-- [Docker Documentation](https://docs.docker.com/get-started/get-docker/)
+## Architecture
 
-### Docker Compose
-- **MacOS**: Already installed with Docker installer
-- **Linux + Windows WSL**: `sudo apt-get install docker-compose-v2`
-- [Compose Documentation](https://docs.docker.com/compose/)
+### Components
 
-### Make
-- **MacOS**: `brew install make`
-- **Linux + Windows WSL**: `sudo apt -y install make`
-- [Make Documentation](https://www.gnu.org/software/make/manual/make.html)
+- **WAVS Service Components**: Off-chain Rust components compiled to WASM that implement the actual eligibility and toggle checking logic.
+- **On-chain Contracts**: Solidity contracts that communicate with WAVS and Hats Protocol.
 
-### JQ
-- **MacOS**: `brew install jq`
-- **Linux + Windows WSL**: `sudo apt -y install jq`
-- [JQ Documentation](https://jqlang.org/download/)
+### Flow
 
-### Node.js
-- **Required Version**: v21+
-- [Installation via NVM](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
-</details>
+1. A user or system requests an eligibility check for a wearer and hat (or a status check for a hat).
+2. The request is stored on-chain as a trigger.
+3. WAVS operators detect the trigger and run the corresponding service component off-chain.
+4. The off-chain component performs the eligibility logic and returns a result.
+5. WAVS operators sign the result and submit it back on-chain to the service handler contract.
+6. The Hats Protocol can then use this information to determine wearers' eligibility or hat status.
 
-<details>
+## Usage
 
-<summary>Rust v1.84+</summary>
+### Setting Up Hats with WAVS Modules
 
-### Rust Installation
+To use a hat with WAVS eligibility checks:
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-rustup toolchain install stable
-rustup target add wasm32-wasip2
+```solidity
+// Create a hat with the HatsEligibilityServiceHandler as the eligibility module
+uint256 hatId = hats.createHat(
+    adminHatId,
+    "Hat Name",
+    1, // maxSupply
+    address(hatsEligibilityHandler), // eligibility module
+    address(0), // toggle module
+    true, // mutable
+    "ipfs://..." // imageURI
+);
 ```
 
-### Upgrade Rust
+To use a hat with WAVS toggle checks:
 
-```bash
-# Remove old targets if present
-rustup target remove wasm32-wasi || true
-rustup target remove wasm32-wasip1 || true
-
-# Update and add required target
-rustup update stable
-rustup target add wasm32-wasip2
+```solidity
+// Create a hat with the HatsToggleServiceHandler as the toggle module
+uint256 hatId = hats.createHat(
+    adminHatId,
+    "Hat Name",
+    1, // maxSupply
+    address(0), // eligibility module
+    address(hatsToggleHandler), // toggle module
+    true, // mutable
+    "ipfs://..." // imageURI
+);
 ```
 
-</details>
+### Requesting Eligibility Checks
 
-<details>
-<summary>Cargo Components</summary>
-
-### Install Cargo Components
-
-```bash
-# Install required cargo components
-# https://github.com/bytecodealliance/cargo-component#installation
-cargo install cargo-binstall
-cargo binstall cargo-component warg-cli wkg --locked --no-confirm
-
-# Configure default registry
-wkg config --default-registry wa.dev
+```solidity
+// Request an eligibility check for a wearer and hat
+TriggerId triggerId = hatsAVSManager.requestEligibilityCheck(wearerAddress, hatId);
 ```
 
-</details>
+### Requesting Status Checks
 
-## Create Project
-
-```bash
-# If you don't have foundry: `curl -L https://foundry.paradigm.xyz | bash && $HOME/.foundry/bin/foundryup`
-forge init --template Lay3rLabs/wavs-foundry-template my-wavs
+```solidity
+// Request a status check for a hat
+TriggerId triggerId = hatsAVSManager.requestStatusCheck(hatId);
 ```
 
-> [!TIP]
-> Run `make help` to see all available commands and environment variable overrides.
+### Setting Up Automated Checks
 
-### Solidity
+```solidity
+// Set up automated eligibility checks for multiple wearers
+address[] memory wearers = new address[](2);
+wearers[0] = address1;
+wearers[1] = address2;
+hatsAVSManager.setupAutomaticEligibilityChecks(hatId, wearers);
 
-Install the required packages to build the Solidity contracts. This project supports both [submodules](./.gitmodules) and [npm packages](./package.json).
+// Set up an automated status check for a hat
+hatsAVSManager.setupAutomaticStatusCheck(hatId);
+```
+
+## WAVS Service Components
+
+### Eligibility Component
+
+The hats-eligibility component implements the standard WAVS component interface:
+
+```rust
+fn run(action: TriggerAction) -> Result<Option<Vec<u8>>, String>
+```
+
+It expects the trigger data to be ABI encoded as:
+- Input: `(address wearer, uint256 hatId)`
+- Output: `(uint64 triggerId, bool eligible, bool standing)`
+
+The component has a simple implementation that determines eligibility based on:
+- Accounts starting with "0x1" are always eligible
+- Other accounts are eligible if the current timestamp is even
+- Accounts ending with "5" are never in good standing
+
+### Toggle Component
+
+The hats-toggle component implements the standard WAVS component interface:
+
+```rust
+fn run(action: TriggerAction) -> Result<Option<Vec<u8>>, String>
+```
+
+It expects the trigger data to be ABI encoded as:
+- Input: `(uint256 hatId)`
+- Output: `(uint64 triggerId, bool active)`
+
+The component has a simple implementation that determines hat status based on:
+- Hats with even IDs are always active
+- Other hats are active if the current day is even
+
+## Building the Components
 
 ```bash
-# Install packages (npm & submodules)
-make setup
+# Build the hats-eligibility component
+cd components/hats-eligibility
+cargo component build --release
 
-# Build the contracts
+# Build the hats-toggle component
+cd ../hats-toggle
+cargo component build --release
+```
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/hats-avs.git
+cd hats-avs
+
+# Install dependencies
+forge install
+```
+
+## Deployment
+
+```bash
+# Compile contracts
 forge build
 
-# Run the solidity tests
+# Deploy contracts
+forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url <your-rpc-url> --private-key <private-key> --broadcast
+```
+
+## Testing
+
+```bash
+# Run tests
 forge test
 ```
 
-### Build WASI components
+## License
 
-Now build the WASI rust components into the `compiled` output directory.
-
-> [!WARNING]
-> If you get: `error: no registry configured for namespace "wavs"`
->
-> run, `wkg config --default-registry wa.dev`
-
-```bash
-make wasi-build # or `make build` to include solidity compilation.
-```
-
-### Execute WASI component directly
-
-Test run the component locally to validate the business logic works. An ID of 1 is Bitcoin. Nothing will be saved on-chain, just the output of the component is shown.
-
-```bash
-COIN_MARKET_CAP_ID=1 make wasi-exec
-```
-
-## WAVS
-
-> [!NOTE]
-> If you are running on a Mac with an ARM chip, you will need to do the following:
-> - Set up Rosetta: `softwareupdate --install-rosetta`
-> - Enable Rosetta (Docker Desktop: Settings -> General -> enable "Use Rosetta for x86_64/amd64 emulation on Apple Silicon")
->
-> Configure one of the following networking:
-> - Docker Desktop: Settings -> Resources -> Network -> 'Enable Host Networking'
-> - `brew install chipmk/tap/docker-mac-net-connect && sudo brew services start chipmk/tap/docker-mac-net-connect`
-
-### Start Environment
-
-Start an ethereum node (anvil), the WAVS service, and deploy [eigenlayer](https://www.eigenlayer.xyz/) contracts to the local network.
-
-```bash
-cp .env.example .env
-
-# Start the backend
-#
-# This must remain running in your terminal. Use another terminal to run other commands.
-# You can stop the services with `ctrl+c`. Some MacOS terminals require pressing it twice.
-make start-all
-```
-
-### Deploy Contract
-
-Upload your service's trigger and submission contracts. The trigger contract is where WAVS will watch for events, and the submission contract is where the AVS service operator will submit the result on chain.
-
-```bash
-export SERVICE_MANAGER_ADDR=`make get-eigen-service-manager-from-deploy`
-forge script ./script/Deploy.s.sol ${SERVICE_MANAGER_ADDR} --sig "run(string)" --rpc-url http://localhost:8545 --broadcast
-```
-
-> [!TIP]
-> You can see the deployed trigger address with `make get-trigger-from-deploy`
-> and the deployed submission address with `make get-service-handler-from-deploy`
-
-## Deploy Service
-
-Deploy the compiled component with the contracts from the previous steps. Review the [makefile](./Makefile) for more details and configuration options.`TRIGGER_EVENT` is the event that the trigger contract emits and WAVS watches for. By altering `SERVICE_TRIGGER_ADDR` you can watch events for contracts others have deployed.
-
-```bash
-TRIGGER_EVENT="NewTrigger(bytes)" make deploy-service
-```
-
-## Trigger the Service
-
-Anyone can now call the [trigger contract](./src/contracts/WavsTrigger.sol) which emits the trigger event WAVS is watching for from the previous step. WAVS then calls the service and saves the result on-chain.
-
-```bash
-export COIN_MARKET_CAP_ID=1
-export SERVICE_TRIGGER_ADDR=`make get-trigger-from-deploy`
-forge script ./script/Trigger.s.sol ${SERVICE_TRIGGER_ADDR} ${COIN_MARKET_CAP_ID} --sig "run(string,string)" --rpc-url http://localhost:8545 --broadcast -v 4
-```
-
-## Show the result
-
-Query the latest submission contract id from the previous request made.
-
-```bash
-# Get the latest TriggerId and show the result via `script/ShowResult.s.sol`
-make show-result
-```
+MIT

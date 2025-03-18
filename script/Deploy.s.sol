@@ -13,8 +13,10 @@ contract Deploy is Common {
     using stdJson for string;
 
     string public root = vm.projectRoot();
-    string public deployments_path = string.concat(root, "/.docker/deployments.json");
-    string public script_output_path = string.concat(root, "/.docker/script_deploy.json");
+    string public deployments_path =
+        string.concat(root, "/.docker/deployments.json");
+    string public script_output_path =
+        string.concat(root, "/.docker/script_deploy.json");
 
     /**
      * @dev Deploys the SimpleSubmit and SimpleTrigger contracts and writes the results to a JSON file
@@ -22,14 +24,22 @@ contract Deploy is Common {
      */
     function run(string calldata _serviceManagerAddr) public {
         vm.startBroadcast(_privateKey);
-        SimpleSubmit _submit = new SimpleSubmit(IWavsServiceManager(vm.parseAddress(_serviceManagerAddr)));
+        SimpleSubmit _submit = new SimpleSubmit(
+            IWavsServiceManager(vm.parseAddress(_serviceManagerAddr))
+        );
         SimpleTrigger _trigger = new SimpleTrigger();
         vm.stopBroadcast();
 
         string memory _json = "json";
-        _json.serialize("service_handler", Strings.toHexString(address(_submit)));
+        _json.serialize(
+            "service_handler",
+            Strings.toHexString(address(_submit))
+        );
         _json.serialize("trigger", Strings.toHexString(address(_trigger)));
-        string memory _finalJson = _json.serialize("service_manager", _serviceManagerAddr);
+        string memory _finalJson = _json.serialize(
+            "service_manager",
+            _serviceManagerAddr
+        );
         vm.writeFile(script_output_path, _finalJson);
     }
 
@@ -37,20 +47,36 @@ contract Deploy is Common {
      * @dev Loads the Eigen contracts from the deployments.json file
      * @return _fixture The Eigen contracts
      */
-    function loadEigenContractsFromFS() public view returns (EigenContracts memory _fixture) {
-        address _dm = _jsonBytesToAddress(".eigen_core.local.delegation_manager");
-        address _rc = _jsonBytesToAddress(".eigen_core.local.rewards_coordinator");
+    function loadEigenContractsFromFS()
+        public
+        returns (EigenContracts memory _fixture)
+    {
+        address _dm = _jsonBytesToAddress(
+            ".eigen_core.local.delegation_manager"
+        );
+        address _rc = _jsonBytesToAddress(
+            ".eigen_core.local.rewards_coordinator"
+        );
         address _avs = _jsonBytesToAddress(".eigen_core.local.avs_directory");
 
-        _fixture = EigenContracts({delegation_manager: _dm, rewards_coordinator: _rc, avs_directory: _avs});
+        _fixture = EigenContracts({
+            delegation_manager: _dm,
+            rewards_coordinator: _rc,
+            avs_directory: _avs
+        });
     }
 
     /**
      * @dev Loads the service managers from the deployments.json file
      * @return _service_managers The list of service managers
      */
-    function loadServiceManagersFromFS() public view returns (address[] memory _service_managers) {
-        _service_managers = vm.readFile(deployments_path).readAddressArray(".eigen_service_managers.local");
+    function loadServiceManagersFromFS()
+        public
+        returns (address[] memory _service_managers)
+    {
+        _service_managers = vm.readFile(deployments_path).readAddressArray(
+            ".eigen_service_managers.local"
+        );
     }
 
     // --- Internal Utils ---
@@ -60,7 +86,13 @@ contract Deploy is Common {
      * @param _byteString The string to convert
      * @return _address The address
      */
-    function _jsonBytesToAddress(string memory _byteString) internal view returns (address _address) {
-        _address = address(uint160(bytes20(vm.readFile(deployments_path).readBytes(_byteString))));
+    function _jsonBytesToAddress(
+        string memory _byteString
+    ) internal returns (address _address) {
+        _address = address(
+            uint160(
+                bytes20(vm.readFile(deployments_path).readBytes(_byteString))
+            )
+        );
     }
 }

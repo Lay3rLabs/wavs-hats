@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {ITypes} from "interfaces/ITypes.sol";
+import {ITypes} from "./ITypes.sol";
 
 interface ISimpleTrigger is ITypes {
     /**
@@ -28,7 +28,9 @@ interface ISimpleTrigger is ITypes {
      * @param _triggerId The identifier of the trigger
      * @return _triggerInfo The trigger info
      */
-    function getTrigger(TriggerId _triggerId) external view returns (TriggerInfo memory _triggerInfo);
+    function getTrigger(
+        TriggerId _triggerId
+    ) external view returns (TriggerInfo memory _triggerInfo);
 
     /*///////////////////////////////////////////////////////////////
                             VARIABLES
@@ -45,12 +47,16 @@ interface ISimpleTrigger is ITypes {
      * @return _creator The creator of the trigger
      * @return _data The data of the trigger
      */
-    function triggersById(TriggerId _triggerId) external view returns (address _creator, bytes memory _data);
+    function triggersById(
+        TriggerId _triggerId
+    ) external view returns (address _creator, bytes memory _data);
 
     /**
      * @notice Get all triggerIds by creator
      * @param _creator The address of the creator
      * @return _triggerIds The triggerIds
      */
-    function triggerIdsByCreator(address _creator) external view returns (TriggerId[] memory _triggerIds);
+    function triggerIdsByCreator(
+        address _creator
+    ) external view returns (TriggerId[] memory _triggerIds);
 }
