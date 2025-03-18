@@ -1,5 +1,5 @@
 [package]
-name = wavs-hats-toggle"
+name = "wavs-hats-toggle"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

@@ -20,14 +20,15 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
         address _wearer,
         uint256 _hatId
     ) external override returns (TriggerId triggerId) {
+        // Input validation
+        require(_wearer != address(0), "Invalid wearer address");
+        require(_hatId > 0, "Invalid hat ID");
+
         // Encode the parameters for the trigger
         bytes memory data = abi.encode(_wearer, _hatId);
 
-        // Call our internal implementation of addTrigger
-        _addTrigger(data);
-
-        // Get the trigger ID
-        triggerId = nextTriggerId;
+        // Create trigger and get ID
+        triggerId = _createTrigger(data);
 
         // Emit the eligibility trigger created event
         emit EligibilityTriggerCreated(triggerId, _wearer, _hatId);
@@ -41,14 +42,14 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
     function createStatusTrigger(
         uint256 _hatId
     ) external override returns (TriggerId triggerId) {
+        // Input validation
+        require(_hatId > 0, "Invalid hat ID");
+
         // Encode the parameters for the trigger
         bytes memory data = abi.encode(_hatId);
 
-        // Call our internal implementation of addTrigger
-        _addTrigger(data);
-
-        // Get the trigger ID
-        triggerId = nextTriggerId;
+        // Create trigger and get ID
+        triggerId = _createTrigger(data);
 
         // Emit the status trigger created event
         emit StatusTriggerCreated(triggerId, _hatId);
@@ -61,17 +62,24 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
     function addTrigger(
         bytes memory _data
     ) public override(ISimpleTrigger, SimpleTrigger) {
-        _addTrigger(_data);
+        require(_data.length > 0, "Empty data");
+        _createTrigger(_data);
     }
 
     /**
-     * @notice Internal implementation of addTrigger logic
+     * @notice Internal implementation to create a trigger
      * @param _data The request data (bytes)
+     * @return _triggerId The ID of the created trigger
      */
-    function _addTrigger(bytes memory _data) internal {
+    function _createTrigger(
+        bytes memory _data
+    ) internal returns (TriggerId _triggerId) {
+        // Input validation
+        require(_data.length > 0, "Empty data");
+
         // Get the next trigger id
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
-        TriggerId _triggerId = nextTriggerId;
+        _triggerId = nextTriggerId;
 
         // Create the trigger
         Trigger memory _trigger = Trigger({creator: msg.sender, data: _data});

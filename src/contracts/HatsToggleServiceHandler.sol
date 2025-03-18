@@ -61,13 +61,23 @@ contract HatsToggleServiceHandler is IHatsToggleServiceHandler {
         bytes calldata _signature
     ) external override {
         // Validate the data and signature
+        require(_data.length > 0, "Empty data");
+        require(_signature.length > 0, "Empty signature");
+
+        // Validate through service manager
         _serviceManager.validate(_data, _signature);
 
         // Decode the result
         StatusResult memory result = abi.decode(_data, (StatusResult));
 
+        // Verify triggerId is valid
+        require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
+
         // Get the trigger details
         uint256 hatId = _getTriggerDetails(result.triggerId);
+
+        // Verify hat ID is valid
+        require(hatId > 0, "Invalid hat ID");
 
         // Update the status result
         _statusResults[hatId] = result;

@@ -81,6 +81,18 @@ contract HatsAVSManager {
     );
 
     /**
+     * @notice Emitted when an eligibility check is requested
+     * @param wearer The address of the wearer
+     * @param hatId The ID of the hat
+     * @param triggerId The ID of the created trigger
+     */
+    event EligibilityCheckRequested(
+        address indexed wearer,
+        uint256 indexed hatId,
+        ITypes.TriggerId triggerId
+    );
+
+    /**
      * @notice Initialize the contract
      * @param _hats The Hats protocol contract
      * @param _eligibilityHandler The eligibility service handler
@@ -115,6 +127,10 @@ contract HatsAVSManager {
         address _wearer,
         uint256 _hatId
     ) external returns (ITypes.TriggerId triggerId) {
+        // Input validation
+        require(_wearer != address(0), "Invalid wearer address");
+        require(_hatId > 0, "Invalid hat ID");
+
         // Check if enough time has passed since the last check
         require(
             block.timestamp >=
@@ -126,8 +142,17 @@ contract HatsAVSManager {
         // Request the eligibility check
         triggerId = eligibilityHandler.requestEligibilityCheck(_wearer, _hatId);
 
+        // Validate the returned triggerId
+        require(
+            ITypes.TriggerId.unwrap(triggerId) > 0,
+            "Invalid triggerId returned"
+        );
+
         // Update the last check timestamp
         lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
+
+        // Emit the event
+        emit EligibilityCheckRequested(_wearer, _hatId, triggerId);
     }
 
     /**

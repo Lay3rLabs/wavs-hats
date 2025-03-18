@@ -64,6 +64,10 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
         bytes calldata _signature
     ) external override {
         // Validate the data and signature
+        require(_data.length > 0, "Empty data");
+        require(_signature.length > 0, "Empty signature");
+
+        // Validate through service manager
         _serviceManager.validate(_data, _signature);
 
         // Decode the result
@@ -72,8 +76,15 @@ contract HatsEligibilityServiceHandler is IHatsEligibilityServiceHandler {
             (EligibilityResult)
         );
 
+        // Verify triggerId is valid
+        require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
+
         // Get the trigger details
         (address wearer, uint256 hatId) = _getTriggerDetails(result.triggerId);
+
+        // Verify addresses are valid
+        require(wearer != address(0), "Invalid wearer address");
+        require(hatId > 0, "Invalid hat ID");
 
         // Update the eligibility result
         _eligibilityResults[wearer][hatId] = result;
