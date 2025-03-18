@@ -2,14 +2,23 @@
 pragma solidity 0.8.22;
 
 import {IHatsAVSTrigger} from "../interfaces/IHatsAVSTrigger.sol";
-import {ISimpleTrigger} from "../interfaces/IWavsTrigger.sol";
-import {SimpleTrigger} from "./WavsTrigger.sol";
+import {ITypes} from "../interfaces/ITypes.sol";
 
 /**
  * @title HatsAVSTrigger
  * @notice Contract that creates triggers for hat eligibility and status updates
  */
-contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
+contract HatsAVSTrigger is IHatsAVSTrigger {
+    /// @notice The next trigger ID to be assigned
+    TriggerId public nextTriggerId;
+
+    /// @notice Mapping of trigger IDs to triggers
+    mapping(TriggerId _triggerId => Trigger _trigger) public triggersById;
+
+    /// @notice Mapping of creator addresses to their trigger IDs
+    mapping(address _creator => TriggerId[] _triggerIds)
+        internal _triggerIdsByCreator;
+
     /**
      * @notice Create a trigger for checking hat eligibility
      * @param _wearer The address of the wearer
@@ -56,17 +65,6 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
     }
 
     /**
-     * @notice Implements the addTrigger interface function
-     * @param _data The request data (bytes)
-     */
-    function addTrigger(
-        bytes memory _data
-    ) public override(ISimpleTrigger, SimpleTrigger) {
-        require(_data.length > 0, "Empty data");
-        _createTrigger(_data);
-    }
-
-    /**
      * @notice Internal implementation to create a trigger
      * @param _data The request data (bytes)
      * @return _triggerId The ID of the created trigger
@@ -74,9 +72,6 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
     function _createTrigger(
         bytes memory _data
     ) internal returns (TriggerId _triggerId) {
-        // Input validation
-        require(_data.length > 0, "Empty data");
-
         // Get the next trigger id
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         _triggerId = nextTriggerId;
@@ -95,5 +90,32 @@ contract HatsAVSTrigger is IHatsAVSTrigger, SimpleTrigger {
         });
 
         emit NewTrigger(abi.encode(_triggerInfo));
+    }
+
+    /**
+     * @notice Get a single trigger by triggerId
+     * @param _triggerId The identifier of the trigger
+     * @return _triggerInfo The trigger info
+     */
+    function getTrigger(
+        TriggerId _triggerId
+    ) external view returns (TriggerInfo memory _triggerInfo) {
+        Trigger storage _trigger = triggersById[_triggerId];
+        _triggerInfo = TriggerInfo({
+            triggerId: _triggerId,
+            creator: _trigger.creator,
+            data: _trigger.data
+        });
+    }
+
+    /**
+     * @notice Get all triggerIds by creator
+     * @param _creator The address of the creator
+     * @return _triggerIds The triggerIds
+     */
+    function triggerIdsByCreator(
+        address _creator
+    ) external view returns (TriggerId[] memory _triggerIds) {
+        _triggerIds = _triggerIdsByCreator[_creator];
     }
 }

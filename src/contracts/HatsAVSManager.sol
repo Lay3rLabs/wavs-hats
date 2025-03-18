@@ -59,28 +59,6 @@ contract HatsAVSManager {
     event HatStatusChecked(uint256 indexed hatId, bool active);
 
     /**
-     * @notice Emitted when an automatic eligibility check is scheduled
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     * @param eligibilityModule The address of the eligibility module
-     */
-    event AutomaticEligibilityCheckScheduled(
-        address indexed wearer,
-        uint256 indexed hatId,
-        address indexed eligibilityModule
-    );
-
-    /**
-     * @notice Emitted when an automatic status check is scheduled
-     * @param hatId The ID of the hat
-     * @param toggleModule The address of the toggle module
-     */
-    event AutomaticStatusCheckScheduled(
-        uint256 indexed hatId,
-        address indexed toggleModule
-    );
-
-    /**
      * @notice Emitted when an eligibility check is requested
      * @param wearer The address of the wearer
      * @param hatId The ID of the hat
@@ -88,6 +66,16 @@ contract HatsAVSManager {
      */
     event EligibilityCheckRequested(
         address indexed wearer,
+        uint256 indexed hatId,
+        ITypes.TriggerId triggerId
+    );
+
+    /**
+     * @notice Emitted when a status check is requested
+     * @param hatId The ID of the hat
+     * @param triggerId The ID of the created trigger
+     */
+    event StatusCheckRequested(
         uint256 indexed hatId,
         ITypes.TriggerId triggerId
     );
@@ -174,6 +162,9 @@ contract HatsAVSManager {
 
         // Update the last check timestamp
         lastStatusChecks[_hatId] = block.timestamp;
+
+        // Emit the event
+        emit StatusCheckRequested(_hatId, triggerId);
     }
 
     /**
@@ -201,116 +192,5 @@ contract HatsAVSManager {
         uint256 _hatId
     ) external view returns (bool active, uint256 timestamp) {
         return toggleHandler.getLatestStatusResult(_hatId);
-    }
-
-    /**
-     * @notice Setup automatic eligibility checks for a hat
-     * @param _hatId The ID of the hat
-     * @param _wearers Array of wearer addresses to check
-     */
-    function setupAutomaticEligibilityChecks(
-        uint256 _hatId,
-        address[] calldata _wearers
-    ) external {
-        // Get the hat's eligibility module
-        address eligibilityModule;
-        (
-            ,
-            ,
-            ,
-            // details
-            // maxSupply
-            // supply
-            eligibilityModule, // eligibility
-            // toggle
-            // imageURI
-            // lastHatId
-            // mutable_
-            // active
-            ,
-            ,
-            ,
-            ,
-
-        ) = hats.viewHat(_hatId);
-
-        // Check if the eligibility module is this contract's eligibility handler
-        require(
-            eligibilityModule == address(eligibilityHandler),
-            "Hat must use the eligibility handler"
-        );
-
-        // Request eligibility checks for all wearers
-        for (uint256 i = 0; i < _wearers.length; i++) {
-            // Skip if the cooldown hasn't elapsed
-            if (
-                block.timestamp <
-                lastEligibilityChecks[_wearers[i]][_hatId] +
-                    eligibilityCheckCooldown
-            ) {
-                continue;
-            }
-
-            // Request the check
-            eligibilityHandler.requestEligibilityCheck(_wearers[i], _hatId);
-
-            // Update the last check timestamp
-            lastEligibilityChecks[_wearers[i]][_hatId] = block.timestamp;
-
-            // Emit the event
-            emit AutomaticEligibilityCheckScheduled(
-                _wearers[i],
-                _hatId,
-                eligibilityModule
-            );
-        }
-    }
-
-    /**
-     * @notice Setup automatic status check for a hat
-     * @param _hatId The ID of the hat
-     */
-    function setupAutomaticStatusCheck(uint256 _hatId) external {
-        // Get the hat's toggle module
-        address toggleModule;
-        (
-            ,
-            ,
-            ,
-            ,
-            // details
-            // maxSupply
-            // supply
-            // eligibility
-            toggleModule, // toggle
-            // imageURI
-            // lastHatId
-            // mutable_
-            // active
-            ,
-            ,
-            ,
-
-        ) = hats.viewHat(_hatId);
-
-        // Check if the toggle module is this contract's toggle handler
-        require(
-            toggleModule == address(toggleHandler),
-            "Hat must use the toggle handler"
-        );
-
-        // Skip if the cooldown hasn't elapsed
-        if (block.timestamp < lastStatusChecks[_hatId] + statusCheckCooldown) {
-            return;
-        }
-
-        // Request the check
-        toggleHandler.requestStatusCheck(_hatId);
-
-        // Update the last check timestamp
-        lastStatusChecks[_hatId] = block.timestamp;
-
-        // Emit the event
-        emit AutomaticStatusCheckScheduled(_hatId, toggleModule);
     }
 }
