@@ -21,8 +21,8 @@ The integration consists of:
 ### Flow
 
 1. A user or system requests an eligibility check for a wearer and hat (or a status check for a hat).
-2. The request is stored on-chain as a trigger.
-3. WAVS operators detect the trigger and run the corresponding service component off-chain.
+2. The request is stored on-chain as a trigger and emitted as an event.
+3. WAVS operators detect the event trigger and run the corresponding service component off-chain.
 4. The off-chain component performs the eligibility logic and returns a result.
 5. WAVS operators sign the result and submit it back on-chain to the service handler contract.
 6. The Hats Protocol can then use this information to determine wearers' eligibility or hat status.
@@ -123,37 +123,26 @@ The component has a simple implementation that determines hat status based on:
 - Hats with even IDs are always active
 - Other hats are active if the current day is even
 
-## Building the Components
-
-```bash
-# Build the hats-eligibility component
-cd components/hats-eligibility
-cargo component build --release
-
-# Build the hats-toggle component
-cd ../hats-toggle
-cargo component build --release
-```
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/hats-avs.git
-cd hats-avs
-
 # Install dependencies
 forge install
+```
+
+## Building
+
+```bash
+# Build the contracts and components
+make build
 ```
 
 ## Deployment
 
 ```bash
-# Compile contracts
-forge build
-
 # Deploy contracts
-forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url <your-rpc-url> --private-key <private-key> --broadcast
+forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost:8545 --broadcast
 ```
 
 ## Testing
