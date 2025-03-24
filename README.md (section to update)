@@ -1,0 +1,40 @@
+### Deploying Contracts
+
+The deployment script can automatically deploy the Hats Protocol and Hats Module Factory contracts if they're not already set in your environment:
+
+```bash
+# Deploy all contracts including Hats Protocol and Hats Module Factory if needed
+forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost:8545 --broadcast
+```
+
+If you already have deployed instances of the Hats Protocol and Hats Module Factory, set their addresses in your `.env` file:
+
+```bash
+# Optional: Set these if you have existing deployments
+HATS_PROTOCOL_ADDRESS=0x... # Address of the deployed Hats Protocol contract
+HATS_MODULE_FACTORY_ADDRESS=0x... # Address of the deployed Hats Module Factory
+```
+
+After deployment, the script will add the deployed contract addresses to your `.env` file:
+
+```bash
+# Hats Protocol AVS Integration Addresses
+HATS_PROTOCOL_ADDRESS=0x...
+HATS_MODULE_FACTORY_ADDRESS=0x...
+HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=0x...
+HATS_TOGGLE_SERVICE_HANDLER_IMPL=0x...
+HATS_AVS_HATTER_IMPL=0x...
+HATS_ELIGIBILITY_SERVICE_HANDLER=0x...
+HATS_TOGGLE_SERVICE_HANDLER=0x...
+HATS_AVS_HATTER=0x...
+HATS_AVS_MANAGER=0x...
+```
+
+These changes will:
+
+1. Automatically deploy Hats Protocol and Hats Module Factory contracts if they're not already set in your environment
+2. Save all deployed addresses, including Hats Protocol and Hats Module Factory, to your `.env` file
+3. Make local development and testing much easier by removing the need to manually deploy these prerequisites
+4. Provide clear instructions in the README about the automatic deployment behavior
+
+This should solve the issue and make the deployment process more developer-friendly! 

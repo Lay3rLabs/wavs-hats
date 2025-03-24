@@ -1089,20 +1089,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eth-price-oracle"
-version = "0.3.0"
-dependencies = [
- "alloy-sol-macro",
- "alloy-sol-types",
- "anyhow",
- "serde",
- "serde_json",
- "wavs-wasi-chain",
- "wit-bindgen-rt 0.39.0",
- "wstd",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
