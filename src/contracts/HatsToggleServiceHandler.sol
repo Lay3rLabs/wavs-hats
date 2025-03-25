@@ -49,17 +49,14 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
      * @param triggerId The ID of the trigger
      * @param hatId The ID of the hat
      */
-    event StatusCheckRequested(
-        TriggerId indexed triggerId,
-        uint256 indexed hatId
-    );
+    event StatusCheckRequested(uint64 indexed triggerId, uint256 indexed hatId);
 
     /**
      * @notice Emitted when a status check result is received
      * @param triggerId The ID of the trigger
      * @param active Whether the hat is active
      */
-    event StatusResultReceived(TriggerId indexed triggerId, bool active);
+    event StatusResultReceived(uint64 indexed triggerId, bool active);
 
     /**
      * @notice Initialize the module implementation
@@ -118,8 +115,8 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         // Update the last check timestamp
         lastStatusChecks[_hatId] = block.timestamp;
 
-        // Emit the event
-        emit StatusCheckRequested(triggerId, _hatId);
+        // Emit the event with unwrapped triggerId
+        emit StatusCheckRequested(TriggerId.unwrap(triggerId), _hatId);
     }
 
     /**
@@ -154,8 +151,11 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         _statusResults[hatId] = result;
         _lastUpdateTimestamps[hatId] = block.timestamp;
 
-        // Emit the event
-        emit StatusResultReceived(result.triggerId, result.active);
+        // Emit the event with unwrapped triggerId
+        emit StatusResultReceived(
+            TriggerId.unwrap(result.triggerId),
+            result.active
+        );
     }
 
     /**

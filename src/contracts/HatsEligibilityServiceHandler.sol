@@ -65,7 +65,7 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
      * @param hatId The ID of the hat
      */
     event EligibilityCheckRequested(
-        TriggerId indexed triggerId,
+        uint64 indexed triggerId,
         address indexed wearer,
         uint256 indexed hatId
     );
@@ -77,7 +77,7 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
      * @param standing Whether the wearer is in good standing
      */
     event EligibilityResultReceived(
-        TriggerId indexed triggerId,
+        uint64 indexed triggerId,
         bool eligible,
         bool standing
     );
@@ -144,8 +144,12 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         // Update the last check timestamp
         lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
 
-        // Emit the event
-        emit EligibilityCheckRequested(triggerId, _wearer, _hatId);
+        // Emit the event with unwrapped triggerId
+        emit EligibilityCheckRequested(
+            TriggerId.unwrap(triggerId),
+            _wearer,
+            _hatId
+        );
     }
 
     /**
@@ -184,9 +188,9 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         _lastUpdateTimestamps[triggerData.wearer][triggerData.hatId] = block
             .timestamp;
 
-        // Emit the event
+        // Emit the event with unwrapped triggerId
         emit EligibilityResultReceived(
-            result.triggerId,
+            TriggerId.unwrap(result.triggerId),
             result.eligible,
             result.standing
         );

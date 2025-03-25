@@ -196,10 +196,10 @@ After deploying the contracts, you need to deploy the WAVS service components:
 
 ```bash
 # Deploy the eligibility service component
-COMPONENT_FILENAME=hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(TriggerId, address, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(uint64, address, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(TriggerId, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(uint64, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 ```
 
 ### Testing the Integration
@@ -258,14 +258,12 @@ When the WAVS services process your requests, you should expect the following be
 
 **For Eligibility Checks:**
 - The eligibility component determines eligibility based on:
-  - Accounts starting with "0x1" are always eligible
-  - Other accounts are eligible if the current timestamp is even
-  - Accounts ending with "5" are never in good standing
+  - All accounts are eligible, the service hardcodes always returning true.
+
 
 **For Status Checks:**
 - The toggle component determines hat status based on:
-  - Hats with even IDs are always active
-  - Other hats are active if the current day is even
+  - All hats run with service should be toggled, the service hardcodes returning true.
 
 #### Troubleshooting
 

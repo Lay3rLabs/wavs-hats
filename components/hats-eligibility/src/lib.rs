@@ -13,7 +13,7 @@ sol! {
 
     #[derive(Debug)]
     event EligibilityCheckRequested(
-        TriggerId indexed triggerId,
+        uint64 indexed triggerId,
         address indexed wearer,
         uint256 indexed hatId
     );

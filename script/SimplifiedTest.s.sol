@@ -17,10 +17,25 @@ contract SimplifiedTest is Script {
     address constant DEFAULT_ACCOUNT =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
+    // Test modes
+    uint8 constant MODE_ALL = 0;
+    uint8 constant MODE_ELIGIBILITY_ONLY = 1;
+    uint8 constant MODE_TOGGLE_ONLY = 2;
+
     /**
-     * @notice Run the simplified test script
+     * @notice Run the simplified test script with all tests
      */
     function run() public {
+        run(MODE_ALL, DEFAULT_ACCOUNT, 1);
+    }
+
+    /**
+     * @notice Run the simplified test script with specific parameters
+     * @param _mode The test mode (0=all, 1=eligibility only, 2=toggle only)
+     * @param _account The account to use for eligibility checks
+     * @param _hatId The hat ID to use for tests
+     */
+    function run(uint8 _mode, address _account, uint256 _hatId) public {
         // Get deployment addresses from environment
         address eligibilityHandlerAddr = vm.envAddress(
             "HATS_ELIGIBILITY_SERVICE_HANDLER"
@@ -34,6 +49,9 @@ contract SimplifiedTest is Script {
             eligibilityHandlerAddr
         );
         console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
+        console.log("Test mode:", _getModeName(_mode));
+        console.log("Test account:", _account);
+        console.log("Test hat ID:", _hatId);
 
         // Create contract instances
         HatsEligibilityServiceHandler eligibilityHandler = HatsEligibilityServiceHandler(
@@ -48,17 +66,60 @@ contract SimplifiedTest is Script {
         // Start broadcasting transactions
         vm.startBroadcast(privateKey);
 
-        // Test with hardcoded hat ID - using a simple value for testing
-        uint256 testHatId = 1; // Just use a simple ID for testing
+        // Test eligibility if mode is ALL or ELIGIBILITY_ONLY
+        if (_mode == MODE_ALL || _mode == MODE_ELIGIBILITY_ONLY) {
+            _testEligibility(eligibilityHandler, _account, _hatId);
+        }
 
-        // 1. Test eligibility check
+        // Test toggle if mode is ALL or TOGGLE_ONLY
+        if (_mode == MODE_ALL || _mode == MODE_TOGGLE_ONLY) {
+            _testToggle(toggleHandler, _hatId);
+        }
+
+        // Stop broadcasting transactions
+        vm.stopBroadcast();
+
+        console.log("\nSimplified test script completed.");
+        console.log(
+            "Note: Wait for WAVS services to process these requests before checking results."
+        );
+        console.log(
+            "Run script/CheckHatsAVSResults.s.sol to check the results after a few seconds."
+        );
+    }
+
+    /**
+     * @notice Get the name of the test mode
+     * @param _mode The test mode
+     * @return mode The name of the test mode
+     */
+    function _getModeName(uint8 _mode) internal pure returns (string memory) {
+        if (_mode == MODE_ALL) {
+            return "ALL";
+        } else if (_mode == MODE_ELIGIBILITY_ONLY) {
+            return "ELIGIBILITY_ONLY";
+        } else if (_mode == MODE_TOGGLE_ONLY) {
+            return "TOGGLE_ONLY";
+        } else {
+            return "UNKNOWN";
+        }
+    }
+
+    /**
+     * @notice Test the eligibility service
+     * @param _handler The eligibility service handler
+     * @param _account The account to use for eligibility checks
+     * @param _hatId The hat ID to use
+     */
+    function _testEligibility(
+        HatsEligibilityServiceHandler _handler,
+        address _account,
+        uint256 _hatId
+    ) internal {
         console.log("\n1. Testing eligibility check");
-        try
-            eligibilityHandler.requestEligibilityCheck(
-                DEFAULT_ACCOUNT,
-                testHatId
-            )
-        returns (ITypes.TriggerId eligibilityTriggerId) {
+        try _handler.requestEligibilityCheck(_account, _hatId) returns (
+            ITypes.TriggerId eligibilityTriggerId
+        ) {
             console.log(
                 "Eligibility check requested with triggerId:",
                 uint64(ITypes.TriggerId.unwrap(eligibilityTriggerId))
@@ -68,10 +129,19 @@ contract SimplifiedTest is Script {
         } catch {
             console.log("Eligibility check request failed with unknown error");
         }
+    }
 
-        // 2. Test status check
+    /**
+     * @notice Test the toggle service
+     * @param _handler The toggle service handler
+     * @param _hatId The hat ID to use
+     */
+    function _testToggle(
+        HatsToggleServiceHandler _handler,
+        uint256 _hatId
+    ) internal {
         console.log("\n2. Testing status check");
-        try toggleHandler.requestStatusCheck(testHatId) returns (
+        try _handler.requestStatusCheck(_hatId) returns (
             ITypes.TriggerId statusTriggerId
         ) {
             console.log(
@@ -83,10 +153,5 @@ contract SimplifiedTest is Script {
         } catch {
             console.log("Status check request failed with unknown error");
         }
-
-        // Stop broadcasting transactions
-        vm.stopBroadcast();
-
-        console.log("\nSimplified test script completed.");
     }
 }

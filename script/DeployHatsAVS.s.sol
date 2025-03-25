@@ -98,7 +98,7 @@ contract DeployHatsAVS is Script {
             0, // hatId (0 means no hat associated)
             abi.encode(""), // parameters encoded as bytes
             abi.encode(address(0)), // owner encoded as bytes
-            0 // immutable flag as uint256 (0 for false, 1 for true)
+            0 // saltNonce
         );
         console.log(
             "HatsEligibilityServiceHandler instance deployed at: %s",
@@ -110,7 +110,7 @@ contract DeployHatsAVS is Script {
             0, // hatId (0 means no hat associated)
             abi.encode(""), // parameters encoded as bytes
             abi.encode(address(0)), // owner encoded as bytes
-            0 // immutable flag as uint256 (0 for false, 1 for true)
+            0 // saltNonce
         );
         console.log(
             "HatsToggleServiceHandler instance deployed at: %s",
@@ -122,44 +122,24 @@ contract DeployHatsAVS is Script {
             0, // hatId (0 means no hat associated)
             abi.encode(""), // parameters encoded as bytes
             abi.encode(address(0)), // owner encoded as bytes
-            0 // immutable flag as uint256 (0 for false, 1 for true)
+            0 // saltNonce
         );
         console.log("HatsAVSHatter instance deployed at: %s", hatter);
 
         // Stop broadcasting transactions
         vm.stopBroadcast();
 
-        // Save addresses to .env file
-        string memory envVars = string.concat(
-            "# Hats Protocol AVS Integration Addresses\n",
-            "HATS_PROTOCOL_ADDRESS=",
-            addressToString(hatsAddr),
-            "\n",
-            "HATS_MODULE_FACTORY_ADDRESS=",
-            addressToString(moduleFactoryAddr),
-            "\n",
-            "HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=",
-            addressToString(address(eligibilityImpl)),
-            "\n",
-            "HATS_TOGGLE_SERVICE_HANDLER_IMPL=",
-            addressToString(address(toggleImpl)),
-            "\n",
-            "HATS_AVS_HATTER_IMPL=",
-            addressToString(address(hatterImpl)),
-            "\n",
-            "HATS_ELIGIBILITY_SERVICE_HANDLER=",
-            addressToString(eligibilityHandler),
-            "\n",
-            "HATS_TOGGLE_SERVICE_HANDLER=",
-            addressToString(toggleHandler),
-            "\n",
-            "HATS_AVS_HATTER=",
-            addressToString(hatter),
-            "\n"
+        // Update or add addresses to .env file
+        updateEnvVars(
+            hatsAddr,
+            moduleFactoryAddr,
+            address(eligibilityImpl),
+            address(toggleImpl),
+            address(hatterImpl),
+            eligibilityHandler,
+            toggleHandler,
+            hatter
         );
-
-        Utils.saveEnvVars(vm, envVars);
-        console.log("Addresses saved to .env file");
 
         // Log deployment completion
         console.log("Hats Protocol WAVS AVS integration deployed successfully");
@@ -231,6 +211,192 @@ contract DeployHatsAVS is Script {
         } else {
             console.log("Using existing Hats Module Factory at:", factoryAddr);
         }
+    }
+
+    /**
+     * @notice Update or add Hats AVS addresses to the .env file
+     * @param hatsAddr Hats Protocol address
+     * @param moduleFactoryAddr Hats Module Factory address
+     * @param eligibilityImplAddr Eligibility Service Handler Implementation address
+     * @param toggleImplAddr Toggle Service Handler Implementation address
+     * @param hatterImplAddr AVS Hatter Implementation address
+     * @param eligibilityHandlerAddr Eligibility Service Handler Instance address
+     * @param toggleHandlerAddr Toggle Service Handler Instance address
+     * @param hatterAddr AVS Hatter Instance address
+     */
+    function updateEnvVars(
+        address hatsAddr,
+        address moduleFactoryAddr,
+        address eligibilityImplAddr,
+        address toggleImplAddr,
+        address hatterImplAddr,
+        address eligibilityHandlerAddr,
+        address toggleHandlerAddr,
+        address hatterAddr
+    ) internal {
+        string memory projectRoot = vm.projectRoot();
+        string memory envPath = string.concat(projectRoot, "/.env");
+        string memory backupPath = string.concat(projectRoot, "/.env.bak");
+        string
+            memory sectionMarker = "# Hats Protocol AVS Integration Addresses";
+
+        // Create a backup of the .env file by reading and writing
+        string memory envContent = vm.readFile(envPath);
+        vm.writeFile(backupPath, envContent);
+        console.log("Created backup of .env file at:", backupPath);
+
+        // Create a new section with the latest addresses
+        string memory newSection = string.concat(
+            sectionMarker,
+            "\n",
+            "HATS_PROTOCOL_ADDRESS=",
+            addressToString(hatsAddr),
+            "\n",
+            "HATS_MODULE_FACTORY_ADDRESS=",
+            addressToString(moduleFactoryAddr),
+            "\n",
+            "HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=",
+            addressToString(eligibilityImplAddr),
+            "\n",
+            "HATS_TOGGLE_SERVICE_HANDLER_IMPL=",
+            addressToString(toggleImplAddr),
+            "\n",
+            "HATS_AVS_HATTER_IMPL=",
+            addressToString(hatterImplAddr),
+            "\n",
+            "HATS_ELIGIBILITY_SERVICE_HANDLER=",
+            addressToString(eligibilityHandlerAddr),
+            "\n",
+            "HATS_TOGGLE_SERVICE_HANDLER=",
+            addressToString(toggleHandlerAddr),
+            "\n",
+            "HATS_AVS_HATTER=",
+            addressToString(hatterAddr),
+            "\n"
+        );
+
+        // Clean and update the .env file
+        // Read file content and manually parse lines
+        string memory content = vm.readFile(envPath);
+
+        // Process the content line by line manually
+        bytes memory contentBytes = bytes(content);
+        bool sectionFound = false;
+        bool skipLines = false;
+        string memory cleanedContent = "";
+        string memory currentLine = "";
+
+        for (uint i = 0; i < contentBytes.length; i++) {
+            bytes1 char = contentBytes[i];
+
+            // Handle line endings (both \n and \r\n)
+            if (char == "\n") {
+                // Process the line
+                if (stringsEqual(currentLine, sectionMarker)) {
+                    if (!sectionFound) {
+                        // First occurrence - replace with new section
+                        sectionFound = true;
+                        cleanedContent = string.concat(
+                            cleanedContent,
+                            newSection
+                        );
+                    }
+                    // Skip this section (marker and following lines)
+                    skipLines = true;
+                }
+                // Check if we hit an empty line or new section (starting with #)
+                else if (
+                    bytes(currentLine).length == 0 ||
+                    (bytes(currentLine).length > 0 &&
+                        bytes(currentLine)[0] == "#")
+                ) {
+                    // Stop skipping lines
+                    skipLines = false;
+                    cleanedContent = string.concat(
+                        cleanedContent,
+                        currentLine,
+                        "\n"
+                    );
+                }
+                // Regular line
+                else if (!skipLines) {
+                    cleanedContent = string.concat(
+                        cleanedContent,
+                        currentLine,
+                        "\n"
+                    );
+                }
+
+                // Reset current line
+                currentLine = "";
+            } else if (char != "\r") {
+                // Skip carriage returns
+                currentLine = string.concat(
+                    currentLine,
+                    string(abi.encodePacked(char))
+                );
+            }
+        }
+
+        // Handle the last line if not empty and doesn't end with newline
+        if (bytes(currentLine).length > 0) {
+            if (stringsEqual(currentLine, sectionMarker)) {
+                if (!sectionFound) {
+                    // First occurrence - replace with new section
+                    sectionFound = true;
+                    cleanedContent = string.concat(cleanedContent, newSection);
+                }
+                // Skip this line (it's our marker)
+            }
+            // Check if it's an empty line or new section (starting with #)
+            else if (
+                bytes(currentLine).length == 0 ||
+                (bytes(currentLine).length > 0 && bytes(currentLine)[0] == "#")
+            ) {
+                cleanedContent = string.concat(
+                    cleanedContent,
+                    currentLine,
+                    "\n"
+                );
+            }
+            // Regular line
+            else if (!skipLines) {
+                cleanedContent = string.concat(
+                    cleanedContent,
+                    currentLine,
+                    "\n"
+                );
+            }
+        }
+
+        // If section wasn't found, append it to the end
+        if (!sectionFound) {
+            // Add a newline if the file doesn't end with one
+            if (
+                bytes(cleanedContent).length > 0 &&
+                bytes(cleanedContent)[bytes(cleanedContent).length - 1] != "\n"
+            ) {
+                cleanedContent = string.concat(cleanedContent, "\n");
+            }
+            cleanedContent = string.concat(cleanedContent, "\n", newSection);
+        }
+
+        // Write the cleaned content back to the .env file
+        vm.writeFile(envPath, cleanedContent);
+        console.log("Updated .env file with new deployment addresses");
+    }
+
+    /**
+     * @dev Custom function to compare two strings for equality
+     * @param a The first string
+     * @param b The second string
+     * @return True if the strings are equal, false otherwise
+     */
+    function stringsEqual(
+        string memory a,
+        string memory b
+    ) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
     /**

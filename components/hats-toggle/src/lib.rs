@@ -19,7 +19,7 @@ sol! {
 
     #[derive(Debug)]
     event StatusCheckRequested(
-        TriggerId indexed triggerId,
+        uint64 indexed triggerId,
         uint256 indexed hatId
     );
 
