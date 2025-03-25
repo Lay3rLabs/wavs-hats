@@ -26,6 +26,13 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
     mapping(address _wearer => mapping(uint256 _hatId => uint256 _timestamp))
         internal _lastUpdateTimestamps;
 
+    /// @notice Minimum time between eligibility checks for a wearer and hat
+    uint256 public immutable eligibilityCheckCooldown;
+
+    /// @notice Mapping to track the last eligibility check for a wearer and hat
+    mapping(address _wearer => mapping(uint256 _hatId => uint256 _lastCheck))
+        public lastEligibilityChecks;
+
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
 
@@ -80,14 +87,17 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
      * @param _version The version of the module
+     * @param _eligibilityCheckCooldown Minimum time between eligibility checks
      */
     constructor(
         IHats _hats,
         address _serviceManager,
-        string memory _version
+        string memory _version,
+        uint256 _eligibilityCheckCooldown
     ) HatsModule(_version) {
         // Store service manager reference
         _serviceManagerAddr = _serviceManager;
+        eligibilityCheckCooldown = _eligibilityCheckCooldown;
     }
 
     /**
@@ -116,12 +126,23 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         require(_wearer != address(0), "Invalid wearer address");
         require(_hatId > 0, "Invalid hat ID");
 
+        // Check if enough time has passed since the last check
+        require(
+            block.timestamp >=
+                lastEligibilityChecks[_wearer][_hatId] +
+                    eligibilityCheckCooldown,
+            "Eligibility check cooldown not elapsed"
+        );
+
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
 
         // Store trigger data
         _triggerData[triggerId] = TriggerData({wearer: _wearer, hatId: _hatId});
+
+        // Update the last check timestamp
+        lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
 
         // Emit the event
         emit EligibilityCheckRequested(triggerId, _wearer, _hatId);

@@ -3,7 +3,6 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSManager} from "../src/contracts/HatsAVSManager.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {ITypes} from "../src/interfaces/ITypes.sol";
 import {Utils} from "./Utils.sol";
@@ -18,16 +17,13 @@ contract TestToggleService is Script {
      */
     function run() public {
         // Get deployment addresses from environment
-        address hatsAVSManagerAddr = vm.envAddress("HATS_AVS_MANAGER");
         address toggleHandlerAddr = vm.envAddress(
             "HATS_TOGGLE_SERVICE_HANDLER"
         );
 
-        console.log("Hats AVS Manager address:", hatsAVSManagerAddr);
         console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
 
         // Create contract instances
-        HatsAVSManager hatsAVSManager = HatsAVSManager(hatsAVSManagerAddr);
         HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
             toggleHandlerAddr
         );
@@ -132,13 +128,6 @@ contract TestToggleService is Script {
         );
         console.log(
             "According to the implementation, even-numbered hats should be active, and odd-numbered hats should be active only on even days."
-        );
-        console.log(
-            "Current day of the month: ",
-            vm.toString(((block.timestamp / 86400) % 30) + 1),
-            " (",
-            (((block.timestamp / 86400) % 30) + 1) % 2 == 0 ? "even" : "odd",
-            ")"
         );
     }
 }

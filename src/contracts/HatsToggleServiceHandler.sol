@@ -25,6 +25,12 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
     mapping(uint256 _hatId => uint256 _timestamp)
         internal _lastUpdateTimestamps;
 
+    /// @notice Minimum time between status checks for a hat
+    uint256 public immutable statusCheckCooldown;
+
+    /// @notice Mapping to track the last status check for a hat
+    mapping(uint256 _hatId => uint256 _lastCheck) public lastStatusChecks;
+
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
 
@@ -60,14 +66,17 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
      * @param _version The version of the module
+     * @param _statusCheckCooldown Minimum time between status checks
      */
     constructor(
         IHats _hats,
         address _serviceManager,
-        string memory _version
+        string memory _version,
+        uint256 _statusCheckCooldown
     ) HatsModule(_version) {
         // Store service manager reference
         _serviceManagerAddr = _serviceManager;
+        statusCheckCooldown = _statusCheckCooldown;
     }
 
     /**
@@ -93,12 +102,21 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         // Input validation
         require(_hatId > 0, "Invalid hat ID");
 
+        // Check if enough time has passed since the last check
+        require(
+            block.timestamp >= lastStatusChecks[_hatId] + statusCheckCooldown,
+            "Status check cooldown not elapsed"
+        );
+
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
 
         // Store trigger data
         _triggerData[triggerId] = _hatId;
+
+        // Update the last check timestamp
+        lastStatusChecks[_hatId] = block.timestamp;
 
         // Emit the event
         emit StatusCheckRequested(triggerId, _hatId);

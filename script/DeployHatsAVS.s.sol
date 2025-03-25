@@ -13,7 +13,6 @@ import {Utils} from "./Utils.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
-import {HatsAVSManager} from "../src/contracts/HatsAVSManager.sol";
 import {IHatsEligibilityServiceHandler} from "../src/interfaces/IHatsEligibilityServiceHandler.sol";
 import {IHatsToggleServiceHandler} from "../src/interfaces/IHatsToggleServiceHandler.sol";
 
@@ -64,7 +63,8 @@ contract DeployHatsAVS is Script {
         HatsEligibilityServiceHandler eligibilityImpl = new HatsEligibilityServiceHandler(
                 hats,
                 serviceManagerAddr,
-                VERSION
+                VERSION,
+                DEFAULT_ELIGIBILITY_CHECK_COOLDOWN
             );
         console.log(
             "HatsEligibilityServiceHandler implementation deployed at: %s",
@@ -74,7 +74,8 @@ contract DeployHatsAVS is Script {
         HatsToggleServiceHandler toggleImpl = new HatsToggleServiceHandler(
             hats,
             serviceManagerAddr,
-            VERSION
+            VERSION,
+            DEFAULT_STATUS_CHECK_COOLDOWN
         );
         console.log(
             "HatsToggleServiceHandler implementation deployed at: %s",
@@ -125,16 +126,6 @@ contract DeployHatsAVS is Script {
         );
         console.log("HatsAVSHatter instance deployed at: %s", hatter);
 
-        // Deploy the manager contract with the correct interface casts
-        HatsAVSManager manager = new HatsAVSManager(
-            hats,
-            IHatsEligibilityServiceHandler(eligibilityHandler),
-            IHatsToggleServiceHandler(toggleHandler),
-            DEFAULT_ELIGIBILITY_CHECK_COOLDOWN,
-            DEFAULT_STATUS_CHECK_COOLDOWN
-        );
-        console.log("HatsAVSManager deployed at: %s", address(manager));
-
         // Stop broadcasting transactions
         vm.stopBroadcast();
 
@@ -164,9 +155,6 @@ contract DeployHatsAVS is Script {
             "\n",
             "HATS_AVS_HATTER=",
             addressToString(hatter),
-            "\n",
-            "HATS_AVS_MANAGER=",
-            addressToString(address(manager)),
             "\n"
         );
 

@@ -3,7 +3,8 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSManager} from "../src/contracts/HatsAVSManager.sol";
+import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
+import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -23,20 +24,34 @@ contract CheckHatsAVSResults is Script {
         uint256 _toggleHatId
     ) public {
         // Get deployment addresses from environment
-        address hatsAVSManagerAddr = vm.envAddress("HATS_AVS_MANAGER");
+        address eligibilityHandlerAddr = vm.envAddress(
+            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+        );
+        address toggleHandlerAddr = vm.envAddress(
+            "HATS_TOGGLE_SERVICE_HANDLER"
+        );
 
-        console.log("Hats AVS Manager address:", hatsAVSManagerAddr);
+        console.log(
+            "Hats Eligibility Service Handler address:",
+            eligibilityHandlerAddr
+        );
+        console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
         console.log("Checking results for wearer:", _wearer);
         console.log("Eligibility Hat ID:", _eligibilityHatId);
         console.log("Toggle Hat ID:", _toggleHatId);
 
         // Create contract instances
-        HatsAVSManager hatsAVSManager = HatsAVSManager(hatsAVSManagerAddr);
+        HatsEligibilityServiceHandler eligibilityHandler = HatsEligibilityServiceHandler(
+                eligibilityHandlerAddr
+            );
+        HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
+            toggleHandlerAddr
+        );
 
         // Check eligibility status
         console.log("\nEligibility status:");
-        (bool eligible, bool standing, uint256 timestamp) = hatsAVSManager
-            .getEligibilityStatus(_wearer, _eligibilityHatId);
+        (bool eligible, bool standing, uint256 timestamp) = eligibilityHandler
+            .getLatestEligibilityResult(_wearer, _eligibilityHatId);
         console.log("Eligible:", eligible);
         console.log("Standing:", standing);
         console.log("Timestamp:", timestamp);
@@ -44,9 +59,8 @@ contract CheckHatsAVSResults is Script {
 
         // Check hat status
         console.log("\nHat status:");
-        (bool active, uint256 statusTimestamp) = hatsAVSManager.getHatStatus(
-            _toggleHatId
-        );
+        (bool active, uint256 statusTimestamp) = toggleHandler
+            .getLatestStatusResult(_toggleHatId);
         console.log("Active:", active);
         console.log("Timestamp:", statusTimestamp);
         console.log("Human timestamp:", _formatTimestamp(statusTimestamp));

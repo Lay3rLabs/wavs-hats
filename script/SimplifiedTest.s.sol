@@ -3,7 +3,8 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSManager} from "../src/contracts/HatsAVSManager.sol";
+import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
+import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {ITypes} from "../src/interfaces/ITypes.sol";
 import {Utils} from "./Utils.sol";
 
@@ -21,12 +22,26 @@ contract SimplifiedTest is Script {
      */
     function run() public {
         // Get deployment addresses from environment
-        address hatsAVSManagerAddr = vm.envAddress("HATS_AVS_MANAGER");
+        address eligibilityHandlerAddr = vm.envAddress(
+            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+        );
+        address toggleHandlerAddr = vm.envAddress(
+            "HATS_TOGGLE_SERVICE_HANDLER"
+        );
 
-        console.log("Hats AVS Manager address:", hatsAVSManagerAddr);
+        console.log(
+            "Hats Eligibility Service Handler address:",
+            eligibilityHandlerAddr
+        );
+        console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
 
         // Create contract instances
-        HatsAVSManager hatsAVSManager = HatsAVSManager(hatsAVSManagerAddr);
+        HatsEligibilityServiceHandler eligibilityHandler = HatsEligibilityServiceHandler(
+                eligibilityHandlerAddr
+            );
+        HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
+            toggleHandlerAddr
+        );
 
         (uint256 privateKey, ) = Utils.getPrivateKey(vm);
 
@@ -39,7 +54,10 @@ contract SimplifiedTest is Script {
         // 1. Test eligibility check
         console.log("\n1. Testing eligibility check");
         try
-            hatsAVSManager.requestEligibilityCheck(DEFAULT_ACCOUNT, testHatId)
+            eligibilityHandler.requestEligibilityCheck(
+                DEFAULT_ACCOUNT,
+                testHatId
+            )
         returns (ITypes.TriggerId eligibilityTriggerId) {
             console.log(
                 "Eligibility check requested with triggerId:",
@@ -53,7 +71,7 @@ contract SimplifiedTest is Script {
 
         // 2. Test status check
         console.log("\n2. Testing status check");
-        try hatsAVSManager.requestStatusCheck(testHatId) returns (
+        try toggleHandler.requestStatusCheck(testHatId) returns (
             ITypes.TriggerId statusTriggerId
         ) {
             console.log(

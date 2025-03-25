@@ -6,7 +6,6 @@ import {console} from "forge-std/console.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
-import {HatsAVSManager} from "../src/contracts/HatsAVSManager.sol";
 import {ITypes} from "../src/interfaces/ITypes.sol";
 import {Utils} from "./Utils.sol";
 
@@ -21,7 +20,6 @@ contract TestHatsAVS is Script {
 
     // Global variables
     IHats public hats;
-    HatsAVSManager public hatsAVSManager;
     HatsEligibilityServiceHandler public eligibilityHandler;
     HatsToggleServiceHandler public toggleHandler;
     uint256 public topHatId;
@@ -34,7 +32,6 @@ contract TestHatsAVS is Script {
     function run() public {
         // Get deployment addresses from environment
         address hatsProtocolAddr = vm.envAddress("HATS_PROTOCOL_ADDRESS");
-        address hatsAVSManagerAddr = vm.envAddress("HATS_AVS_MANAGER");
         address eligibilityHandlerAddr = vm.envAddress(
             "HATS_ELIGIBILITY_SERVICE_HANDLER"
         );
@@ -43,7 +40,6 @@ contract TestHatsAVS is Script {
         );
 
         console.log("Hats Protocol address:", hatsProtocolAddr);
-        console.log("Hats AVS Manager address:", hatsAVSManagerAddr);
         console.log(
             "Hats Eligibility Service Handler address:",
             eligibilityHandlerAddr
@@ -52,7 +48,6 @@ contract TestHatsAVS is Script {
 
         // Create contract instances
         hats = IHats(hatsProtocolAddr);
-        hatsAVSManager = HatsAVSManager(hatsAVSManagerAddr);
         eligibilityHandler = HatsEligibilityServiceHandler(
             eligibilityHandlerAddr
         );
@@ -92,7 +87,7 @@ contract TestHatsAVS is Script {
 
         // 4. Test eligibility check with existing hat
         console.log("\n4. Testing eligibility check");
-        ITypes.TriggerId eligibilityTriggerId = hatsAVSManager
+        ITypes.TriggerId eligibilityTriggerId = eligibilityHandler
             .requestEligibilityCheck(DEFAULT_ACCOUNT, childHatId);
         console.log(
             "Eligibility check requested with triggerId:",
@@ -101,7 +96,7 @@ contract TestHatsAVS is Script {
 
         // 5. Test status check with existing hat
         console.log("\n5. Testing status check");
-        ITypes.TriggerId statusTriggerId = hatsAVSManager.requestStatusCheck(
+        ITypes.TriggerId statusTriggerId = toggleHandler.requestStatusCheck(
             childHatId
         );
         console.log(
@@ -113,17 +108,16 @@ contract TestHatsAVS is Script {
         console.log(
             "\n6. Current eligibility status (may take time to update):"
         );
-        (bool eligible, bool standing, uint256 timestamp) = hatsAVSManager
-            .getEligibilityStatus(DEFAULT_ACCOUNT, childHatId);
+        (bool eligible, bool standing, uint256 timestamp) = eligibilityHandler
+            .getLatestEligibilityResult(DEFAULT_ACCOUNT, childHatId);
         console.log("Eligible:", eligible);
         console.log("Standing:", standing);
         console.log("Timestamp:", timestamp);
 
         // 7. Current hat status (will likely be zeros until WAVS processes)
         console.log("\n7. Current hat status (may take time to update):");
-        (bool active, uint256 statusTimestamp) = hatsAVSManager.getHatStatus(
-            childHatId
-        );
+        (bool active, uint256 statusTimestamp) = toggleHandler
+            .getLatestStatusResult(childHatId);
         console.log("Active:", active);
         console.log("Timestamp:", statusTimestamp);
 
