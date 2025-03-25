@@ -1,4 +1,4 @@
-@openzeppelin-contracts=node_modules/@openzeppelin/contracts/
+@openzeppelin-contracts=node_modules/@openzeppelin/
 @wavs/=node_modules/@wavs/solidity
 forge-std=node_modules/forge-std/src
 
@@ -8,3 +8,4 @@ interfaces/=src/interfaces
 hats-module/=lib/hats-module
 solady/=lib/hats-module/lib/solady/src
 hats-protocol/=lib/hats-protocol/src
+ds-test/=lib/forge-std/lib/ds-test/src/
