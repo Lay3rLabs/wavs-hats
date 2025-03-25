@@ -196,10 +196,10 @@ After deploying the contracts, you need to deploy the WAVS service components:
 
 ```bash
 # Deploy the eligibility service component
-COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(uint64, address, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(uint64,address,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(uint64, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(uint64,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 ```
 
 ### Testing the Integration
@@ -217,7 +217,7 @@ forge script script/SimplifiedTest.s.sol --rpc-url http://localhost:8545 --broad
 # 2. Wait a few seconds for the WAVS services to process the requests
 
 # 3. Check the results
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig 'run(address,uint256,uint256)' 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 1
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 1
 ```
 
 The `SimplifiedTest.s.sol` script performs the following actions:
@@ -251,7 +251,6 @@ cast call $HATS_AVS_MANAGER "getEligibilityStatus(address,uint256)" 0xf39Fd6e51a
 # Parameters: hatId
 cast call $HATS_AVS_MANAGER "getHatStatus(uint256)" 1
 ```
-
 #### Expected Results
 
 When the WAVS services process your requests, you should expect the following behavior:
@@ -277,4 +276,5 @@ If you're not seeing results after running the test commands:
 ## Instructions
 
 These instructions cover the basic setup, deployment, and testing of the Hats Protocol WAVS integration. For more detailed usage and customization options, refer to the contract documentation and test files.
+
 
