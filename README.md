@@ -243,13 +243,11 @@ cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestEligibility
 # Parameters: hatId
 cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestStatusCheck(uint256)" 1
 
-# 3. Wait a few seconds for the WAVS services to process the requests
-
-# 4. Query the eligibility status
+# 3. Query the eligibility status
 # Parameters: wearer, hatId
 cast call $HATS_AVS_MANAGER "getEligibilityStatus(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 
-# 5. Query the hat status
+# 4. Query the hat status
 # Parameters: hatId
 cast call $HATS_AVS_MANAGER "getHatStatus(uint256)" 1
 ```

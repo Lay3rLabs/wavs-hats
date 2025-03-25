@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Check if user is in docker group to determine if sudo is needed
-SUDO := ''
+SUDO := $(shell if groups | grep -q docker; then echo ''; else echo 'sudo'; fi)
 
 # Default target is build
 default: build
