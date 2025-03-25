@@ -196,63 +196,87 @@ After deploying the contracts, you need to deploy the WAVS service components:
 
 ```bash
 # Deploy the eligibility service component
-COMPONENT_FILENAME=hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MANAGER_ADDRESS SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(TriggerId, address, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MANAGER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckRequested(TriggerId, address, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MANAGER_ADDRESS SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(TriggerId, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MANAGER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckRequested(TriggerId, uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 ```
 
 ### Testing the Integration
 
-You can use the following commands to test the Hats Protocol WAVS integration:
+You can use the following approaches to test the Hats Protocol WAVS integration:
 
-#### 1. Create a Hat with Eligibility Module
+#### Using Forge Scripts (Recommended)
+
+Using Forge scripts is the most reliable way to test the integration as it handles the complexity of creating hats and interacting with the contracts:
 
 ```bash
-# Create a hat with the eligibility module
-# Parameters: adminHatId, details, maxSupply, eligibility, toggle, mutable, imageURI
-cast send --private-key $ANVIL_PRIVATE_KEY $HATS_PROTOCOL_ADDRESS "createHat(uint256,string,uint32,address,address,bool,string)" 1 "Test Hat with Eligibility" 10 $HATS_ELIGIBILITY_SERVICE_HANDLER 0x0000000000000000000000000000000000000000 true "ipfs://..."
+# 1. Run the simplified test script to send eligibility and status check requests
+forge script script/SimplifiedTest.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# 2. Wait a few seconds for the WAVS services to process the requests
+
+# 3. Check the results
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig 'run(address,uint256,uint256)' 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 1
 ```
 
-#### 2. Request an Eligibility Check
+The `SimplifiedTest.s.sol` script performs the following actions:
+- Requests an eligibility check for a specific wearer and hat ID
+- Requests a status check for a hat ID
+- Outputs the trigger IDs that were created
+
+The `CheckHatsAVSResults.s.sol` script allows you to check the results of these requests after the WAVS services have processed them.
+
+#### Using Cast Commands (Alternative)
+
+If you prefer using individual cast commands, you can use the following after setting up your environment:
 
 ```bash
-# Request an eligibility check for a wearer and hat
+# Set up the required environment variable
+export ANVIL_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# 1. Request an eligibility check for a wearer and hat
 # Parameters: wearer, hatId
-cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestEligibilityCheck(address,uint256)" 0x1234567890123456789012345678901234567890 2
-```
+cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestEligibilityCheck(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 
-#### 3. Query Eligibility Status
+# 2. Request a status check for a hat
+# Parameters: hatId
+cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestStatusCheck(uint256)" 1
 
-```bash
-# Query the eligibility status of a wearer for a hat
+# 3. Wait a few seconds for the WAVS services to process the requests
+
+# 4. Query the eligibility status
 # Parameters: wearer, hatId
-cast call $HATS_AVS_MANAGER "getEligibilityStatus(address,uint256)" 0x1234567890123456789012345678901234567890 2
-```
+cast call $HATS_AVS_MANAGER "getEligibilityStatus(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 
-#### 4. Create a Hat with Toggle Module
-
-```bash
-# Create a hat with the toggle module
-# Parameters: adminHatId, details, maxSupply, eligibility, toggle, mutable, imageURI
-cast send --private-key $ANVIL_PRIVATE_KEY $HATS_PROTOCOL_ADDRESS "createHat(uint256,string,uint32,address,address,bool,string)" 1 "Test Hat with Toggle" 10 0x0000000000000000000000000000000000000000 $HATS_TOGGLE_SERVICE_HANDLER true "ipfs://..."
-```
-
-#### 5. Request a Status Check
-
-```bash
-# Request a status check for a hat
+# 5. Query the hat status
 # Parameters: hatId
-cast send --private-key $ANVIL_PRIVATE_KEY $HATS_AVS_MANAGER "requestStatusCheck(uint256)" 2
+cast call $HATS_AVS_MANAGER "getHatStatus(uint256)" 1
 ```
 
-#### 6. Query Hat Status
+#### Expected Results
 
-```bash
-# Query the status of a hat
-# Parameters: hatId
-cast call $HATS_AVS_MANAGER "getHatStatus(uint256)" 2
-```
+When the WAVS services process your requests, you should expect the following behavior:
+
+**For Eligibility Checks:**
+- The eligibility component determines eligibility based on:
+  - Accounts starting with "0x1" are always eligible
+  - Other accounts are eligible if the current timestamp is even
+  - Accounts ending with "5" are never in good standing
+
+**For Status Checks:**
+- The toggle component determines hat status based on:
+  - Hats with even IDs are always active
+  - Other hats are active if the current day is even
+
+#### Troubleshooting
+
+If you're not seeing results after running the test commands:
+
+1. Make sure the WAVS services are running properly. You should see Docker containers for the WAVS operator and other components running.
+2. Check that both service components were successfully deployed with the correct trigger and submission addresses.
+3. Try increasing the wait time between requesting a check and querying the results.
+4. Examine the logs of the WAVS services for any errors or issues.
 
 ## Instructions
 
