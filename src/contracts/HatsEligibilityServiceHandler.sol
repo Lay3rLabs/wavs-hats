@@ -144,12 +144,21 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         // Update the last check timestamp
         lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
 
-        // Emit the event with unwrapped triggerId
+        // Emit the original event for backward compatibility
         emit EligibilityCheckRequested(
             TriggerId.unwrap(triggerId),
             _wearer,
             _hatId
         );
+
+        // Create and emit the standard NewTrigger event that WAVS expects
+        TriggerInfo memory triggerInfo = TriggerInfo({
+            triggerId: triggerId,
+            creator: msg.sender,
+            data: abi.encode(_wearer, _hatId)
+        });
+
+        emit NewTrigger(abi.encode(triggerInfo));
     }
 
     /**

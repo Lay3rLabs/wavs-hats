@@ -115,8 +115,17 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         // Update the last check timestamp
         lastStatusChecks[_hatId] = block.timestamp;
 
-        // Emit the event with unwrapped triggerId
+        // Emit the original event for backward compatibility
         emit StatusCheckRequested(TriggerId.unwrap(triggerId), _hatId);
+
+        // Create and emit the standard NewTrigger event that WAVS expects
+        TriggerInfo memory triggerInfo = TriggerInfo({
+            triggerId: triggerId,
+            creator: msg.sender,
+            data: abi.encode(_hatId)
+        });
+
+        emit NewTrigger(abi.encode(triggerInfo));
     }
 
     /**

@@ -12,11 +12,14 @@ sol! {
     type TriggerId is uint64;
 
     #[derive(Debug)]
-    event EligibilityCheckRequested(
-        uint64 indexed triggerId,
-        address indexed wearer,
-        uint256 indexed hatId
-    );
+    event NewTrigger(bytes _triggerInfo);
+
+    #[derive(Debug)]
+    struct TriggerInfo {
+        TriggerId triggerId;
+        address creator;
+        bytes data;
+    }
 
     #[derive(Debug)]
     struct EligibilityResult {
@@ -32,14 +35,35 @@ impl Guest for Component {
     fn run(trigger_action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
-                // Decode event
-                let EligibilityCheckRequested { triggerId, .. } = decode_event_log_data!(log)
+                // Decode the NewTrigger event to get the _triggerInfo bytes
+                let NewTrigger { _triggerInfo } = decode_event_log_data!(log)
                     .map_err(|e| format!("Failed to decode event log data: {}", e))?;
 
-                // Return result with payload data recieved in handleSignedData
-                Ok(Some(
-                    EligibilityResult { triggerId, eligible: true, standing: true }.abi_encode(),
-                ))
+                // Decode the _triggerInfo bytes to get the TriggerInfo struct
+                // Return error if we can't decode instead of using fallbacks
+                let trigger_info = TriggerInfo::abi_decode(&_triggerInfo, true)
+                    .map_err(|e| format!("Failed to decode trigger info: {}", e))?;
+
+                eprintln!("Successfully decoded trigger info");
+
+                // Extract wearer and hatId if needed from data
+                // In a real implementation, you would analyze the data to determine
+                // if the wearer is eligible and in good standing
+
+                // For this simplified implementation, we're just setting:
+                // eligible = true and standing = true
+                let eligible = true;
+                let standing = true;
+
+                // Create EligibilityResult with the proper triggerId from decoded data
+                let result =
+                    EligibilityResult { triggerId: trigger_info.triggerId, eligible, standing };
+
+                // Log success message
+                eprintln!("Eligibility component successfully processed the trigger");
+
+                // Return the ABI-encoded result
+                Ok(Some(result.abi_encode()))
             }
             _ => Err("Unsupported trigger data".to_string()),
         }
