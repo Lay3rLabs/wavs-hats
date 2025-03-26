@@ -13,6 +13,7 @@ import {Utils} from "./Utils.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
+import {HatsAVSMinter} from "../src/contracts/HatsAVSMinter.sol";
 import {IHatsEligibilityServiceHandler} from "../src/interfaces/IHatsEligibilityServiceHandler.sol";
 import {IHatsToggleServiceHandler} from "../src/interfaces/IHatsToggleServiceHandler.sol";
 
@@ -49,20 +50,54 @@ contract DeployHatsAVS is Script {
         console.log("Hats Protocol address:", hatsAddr);
         console.log("Hats Module Factory address:", moduleFactoryAddr);
 
-        // Create instances of the external contracts
-        // Keeping the service manager reference for future use (suppress unused warning)
-        IWavsServiceManager serviceManager;
-        serviceManager = IWavsServiceManager(serviceManagerAddr);
-        IHats hats = IHats(hatsAddr);
-        HatsModuleFactory moduleFactory = HatsModuleFactory(moduleFactoryAddr);
+        // Deploy implementation contracts
+        ImplementationAddresses memory implAddrs = deployImplementations(
+            privateKey,
+            hatsAddr,
+            serviceManagerAddr
+        );
 
-        // Start broadcasting transactions with the private key
-        vm.startBroadcast(privateKey);
+        // Deploy instances
+        InstanceAddresses memory instanceAddrs = deployInstances(
+            privateKey,
+            moduleFactoryAddr,
+            implAddrs
+        );
 
-        // Deploy the module implementations
+        // Update or add addresses to .env file
+        CoreAddresses memory core = CoreAddresses({
+            hatsAddr: hatsAddr,
+            moduleFactoryAddr: moduleFactoryAddr
+        });
+
+        updateEnvVars(core, implAddrs, instanceAddrs);
+
+        // Log deployment completion
+        console.log("Hats Protocol WAVS AVS integration deployed successfully");
+    }
+
+    /**
+     * @notice Deploy implementation contracts
+     * @param _privateKey The private key to use for broadcasting transactions
+     * @param _hatsAddr The address of the Hats Protocol contract
+     * @param _serviceManagerAddr The address of the WAVS Service Manager
+     * @return implAddrs The addresses of the deployed implementation contracts
+     */
+    function deployImplementations(
+        uint256 _privateKey,
+        address _hatsAddr,
+        address _serviceManagerAddr
+    ) internal returns (ImplementationAddresses memory implAddrs) {
+        // Create instance of the Hats contract
+        IHats hats = IHats(_hatsAddr);
+
+        // Start broadcasting transactions
+        vm.startBroadcast(_privateKey);
+
+        // Deploy the eligibility service handler implementation
         HatsEligibilityServiceHandler eligibilityImpl = new HatsEligibilityServiceHandler(
                 hats,
-                serviceManagerAddr,
+                _serviceManagerAddr,
                 VERSION,
                 DEFAULT_ELIGIBILITY_CHECK_COOLDOWN
             );
@@ -71,9 +106,10 @@ contract DeployHatsAVS is Script {
             address(eligibilityImpl)
         );
 
+        // Deploy the toggle service handler implementation
         HatsToggleServiceHandler toggleImpl = new HatsToggleServiceHandler(
             hats,
-            serviceManagerAddr,
+            _serviceManagerAddr,
             VERSION,
             DEFAULT_STATUS_CHECK_COOLDOWN
         );
@@ -82,9 +118,10 @@ contract DeployHatsAVS is Script {
             address(toggleImpl)
         );
 
+        // Deploy the hatter implementation
         HatsAVSHatter hatterImpl = new HatsAVSHatter(
             hats,
-            serviceManagerAddr,
+            _serviceManagerAddr,
             VERSION
         );
         console.log(
@@ -92,57 +129,107 @@ contract DeployHatsAVS is Script {
             address(hatterImpl)
         );
 
-        // Create module instances via factory
-        address eligibilityHandler = moduleFactory.createHatsModule(
-            address(eligibilityImpl), // implementation
-            0, // hatId (0 means no hat associated)
-            abi.encode(""), // parameters encoded as bytes
-            abi.encode(address(0)), // owner encoded as bytes
-            0 // saltNonce
+        // Deploy the minter implementation
+        HatsAVSMinter minterImpl = new HatsAVSMinter(
+            hats,
+            _serviceManagerAddr,
+            VERSION
         );
         console.log(
-            "HatsEligibilityServiceHandler instance deployed at: %s",
-            eligibilityHandler
+            "HatsAVSMinter implementation deployed at: %s",
+            address(minterImpl)
         );
 
-        address toggleHandler = moduleFactory.createHatsModule(
-            address(toggleImpl), // implementation
-            0, // hatId (0 means no hat associated)
-            abi.encode(""), // parameters encoded as bytes
-            abi.encode(address(0)), // owner encoded as bytes
-            0 // saltNonce
-        );
-        console.log(
-            "HatsToggleServiceHandler instance deployed at: %s",
-            toggleHandler
-        );
-
-        address hatter = moduleFactory.createHatsModule(
-            address(hatterImpl), // implementation
-            0, // hatId (0 means no hat associated)
-            abi.encode(""), // parameters encoded as bytes
-            abi.encode(address(0)), // owner encoded as bytes
-            0 // saltNonce
-        );
-        console.log("HatsAVSHatter instance deployed at: %s", hatter);
-
-        // Stop broadcasting transactions
+        // Stop broadcasting
         vm.stopBroadcast();
 
-        // Update or add addresses to .env file
-        updateEnvVars(
-            hatsAddr,
-            moduleFactoryAddr,
-            address(eligibilityImpl),
-            address(toggleImpl),
-            address(hatterImpl),
-            eligibilityHandler,
-            toggleHandler,
-            hatter
+        // Return the addresses
+        return
+            ImplementationAddresses({
+                eligibilityImplAddr: address(eligibilityImpl),
+                toggleImplAddr: address(toggleImpl),
+                hatterImplAddr: address(hatterImpl),
+                minterImplAddr: address(minterImpl)
+            });
+    }
+
+    /**
+     * @notice Deploy instance contracts
+     * @param _privateKey The private key to use for broadcasting transactions
+     * @param _moduleFactoryAddr The address of the Hats Module Factory
+     * @param _implAddrs The addresses of the implementation contracts
+     * @return instanceAddrs The addresses of the deployed instance contracts
+     */
+    function deployInstances(
+        uint256 _privateKey,
+        address _moduleFactoryAddr,
+        ImplementationAddresses memory _implAddrs
+    ) internal returns (InstanceAddresses memory instanceAddrs) {
+        // Create instance of the factory
+        HatsModuleFactory moduleFactory = HatsModuleFactory(_moduleFactoryAddr);
+
+        // Start broadcasting transactions
+        vm.startBroadcast(_privateKey);
+
+        // Create module instances via factory
+        address eligibilityHandler = _createModuleInstance(
+            moduleFactory,
+            _implAddrs.eligibilityImplAddr,
+            "HatsEligibilityServiceHandler"
         );
 
-        // Log deployment completion
-        console.log("Hats Protocol WAVS AVS integration deployed successfully");
+        address toggleHandler = _createModuleInstance(
+            moduleFactory,
+            _implAddrs.toggleImplAddr,
+            "HatsToggleServiceHandler"
+        );
+
+        address hatter = _createModuleInstance(
+            moduleFactory,
+            _implAddrs.hatterImplAddr,
+            "HatsAVSHatter"
+        );
+
+        address minter = _createModuleInstance(
+            moduleFactory,
+            _implAddrs.minterImplAddr,
+            "HatsAVSMinter"
+        );
+
+        // Stop broadcasting
+        vm.stopBroadcast();
+
+        // Return the addresses
+        return
+            InstanceAddresses({
+                eligibilityHandlerAddr: eligibilityHandler,
+                toggleHandlerAddr: toggleHandler,
+                hatterAddr: hatter,
+                minterAddr: minter
+            });
+    }
+
+    /**
+     * @notice Create a module instance via the factory
+     * @param _factory The Hats Module Factory
+     * @param _implementation The address of the implementation contract
+     * @param _name The name of the module (for logging)
+     * @return instance The address of the deployed instance
+     */
+    function _createModuleInstance(
+        HatsModuleFactory _factory,
+        address _implementation,
+        string memory _name
+    ) internal returns (address instance) {
+        instance = _factory.createHatsModule(
+            _implementation, // implementation
+            0, // hatId (0 means no hat associated)
+            abi.encode(""), // parameters encoded as bytes
+            abi.encode(address(0)), // owner encoded as bytes
+            0 // saltNonce
+        );
+        console.log("%s instance deployed at: %s", _name, instance);
+        return instance;
     }
 
     /**
@@ -213,71 +300,140 @@ contract DeployHatsAVS is Script {
         }
     }
 
+    // Define a struct to hold all the addresses, but split into smaller groups
+    struct CoreAddresses {
+        address hatsAddr;
+        address moduleFactoryAddr;
+    }
+
+    struct ImplementationAddresses {
+        address eligibilityImplAddr;
+        address toggleImplAddr;
+        address hatterImplAddr;
+        address minterImplAddr;
+    }
+
+    struct InstanceAddresses {
+        address eligibilityHandlerAddr;
+        address toggleHandlerAddr;
+        address hatterAddr;
+        address minterAddr;
+    }
+
     /**
      * @notice Update or add Hats AVS addresses to the .env file
-     * @param hatsAddr Hats Protocol address
-     * @param moduleFactoryAddr Hats Module Factory address
-     * @param eligibilityImplAddr Eligibility Service Handler Implementation address
-     * @param toggleImplAddr Toggle Service Handler Implementation address
-     * @param hatterImplAddr AVS Hatter Implementation address
-     * @param eligibilityHandlerAddr Eligibility Service Handler Instance address
-     * @param toggleHandlerAddr Toggle Service Handler Instance address
-     * @param hatterAddr AVS Hatter Instance address
      */
     function updateEnvVars(
-        address hatsAddr,
-        address moduleFactoryAddr,
-        address eligibilityImplAddr,
-        address toggleImplAddr,
-        address hatterImplAddr,
-        address eligibilityHandlerAddr,
-        address toggleHandlerAddr,
-        address hatterAddr
+        CoreAddresses memory _core,
+        ImplementationAddresses memory _impls,
+        InstanceAddresses memory _instances
     ) internal {
         string memory projectRoot = vm.projectRoot();
         string memory envPath = string.concat(projectRoot, "/.env");
         string memory backupPath = string.concat(projectRoot, "/.env.bak");
+
+        // Create a backup of the .env file
+        _backupEnvFile(envPath, backupPath);
+
+        // Create sections individually to avoid stack depth issues
+        string memory coreSection = _createCoreSection(_core);
+        string memory implSection = _createImplSection(_impls);
+        string memory instanceSection = _createInstanceSection(_instances);
+
+        // Combine all sections
         string
             memory sectionMarker = "# Hats Protocol AVS Integration Addresses";
-
-        // Create a backup of the .env file by reading and writing
-        string memory envContent = vm.readFile(envPath);
-        vm.writeFile(backupPath, envContent);
-        console.log("Created backup of .env file at:", backupPath);
-
-        // Create a new section with the latest addresses
         string memory newSection = string.concat(
-            sectionMarker,
-            "\n",
-            "HATS_PROTOCOL_ADDRESS=",
-            addressToString(hatsAddr),
-            "\n",
-            "HATS_MODULE_FACTORY_ADDRESS=",
-            addressToString(moduleFactoryAddr),
-            "\n",
-            "HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=",
-            addressToString(eligibilityImplAddr),
-            "\n",
-            "HATS_TOGGLE_SERVICE_HANDLER_IMPL=",
-            addressToString(toggleImplAddr),
-            "\n",
-            "HATS_AVS_HATTER_IMPL=",
-            addressToString(hatterImplAddr),
-            "\n",
-            "HATS_ELIGIBILITY_SERVICE_HANDLER=",
-            addressToString(eligibilityHandlerAddr),
-            "\n",
-            "HATS_TOGGLE_SERVICE_HANDLER=",
-            addressToString(toggleHandlerAddr),
-            "\n",
-            "HATS_AVS_HATTER=",
-            addressToString(hatterAddr),
-            "\n"
+            coreSection,
+            implSection,
+            instanceSection
         );
 
-        // Clean and update the .env file
-        // Read file content and manually parse lines
-        string memory content = vm.readFile(envPath);
+        // Process and update the file
+        _processEnvFile(envPath, sectionMarker, newSection);
+    }
+
+    // Break out section creation into dedicated functions
+    function _createCoreSection(
+        CoreAddresses memory _core
+    ) internal pure returns (string memory) {
+        string
+            memory sectionMarker = "# Hats Protocol AVS Integration Addresses";
+        return
+            string.concat(
+                sectionMarker,
+                "\n",
+                "HATS_PROTOCOL_ADDRESS=",
+                addressToString(_core.hatsAddr),
+                "\n",
+                "HATS_MODULE_FACTORY_ADDRESS=",
+                addressToString(_core.moduleFactoryAddr),
+                "\n"
+            );
+    }
+
+    function _createImplSection(
+        ImplementationAddresses memory _impls
+    ) internal pure returns (string memory) {
+        return
+            string.concat(
+                "HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=",
+                addressToString(_impls.eligibilityImplAddr),
+                "\n",
+                "HATS_TOGGLE_SERVICE_HANDLER_IMPL=",
+                addressToString(_impls.toggleImplAddr),
+                "\n",
+                "HATS_AVS_HATTER_IMPL=",
+                addressToString(_impls.hatterImplAddr),
+                "\n",
+                "HATS_AVS_MINTER_IMPL=",
+                addressToString(_impls.minterImplAddr),
+                "\n"
+            );
+    }
+
+    function _createInstanceSection(
+        InstanceAddresses memory _instances
+    ) internal pure returns (string memory) {
+        return
+            string.concat(
+                "HATS_ELIGIBILITY_SERVICE_HANDLER=",
+                addressToString(_instances.eligibilityHandlerAddr),
+                "\n",
+                "HATS_TOGGLE_SERVICE_HANDLER=",
+                addressToString(_instances.toggleHandlerAddr),
+                "\n",
+                "HATS_AVS_HATTER=",
+                addressToString(_instances.hatterAddr),
+                "\n",
+                "HATS_AVS_MINTER=",
+                addressToString(_instances.minterAddr),
+                "\n"
+            );
+    }
+
+    /**
+     * @notice Create a backup of the env file
+     */
+    function _backupEnvFile(
+        string memory _envPath,
+        string memory _backupPath
+    ) internal {
+        string memory envContent = vm.readFile(_envPath);
+        vm.writeFile(_backupPath, envContent);
+        console.log("Created backup of .env file at:", _backupPath);
+    }
+
+    /**
+     * @notice Process the env file and update it with the new section
+     */
+    function _processEnvFile(
+        string memory _envPath,
+        string memory _sectionMarker,
+        string memory _newSection
+    ) internal {
+        // Read file content
+        string memory content = vm.readFile(_envPath);
 
         // Process the content line by line manually
         bytes memory contentBytes = bytes(content);
@@ -292,13 +448,13 @@ contract DeployHatsAVS is Script {
             // Handle line endings (both \n and \r\n)
             if (char == "\n") {
                 // Process the line
-                if (stringsEqual(currentLine, sectionMarker)) {
+                if (stringsEqual(currentLine, _sectionMarker)) {
                     if (!sectionFound) {
                         // First occurrence - replace with new section
                         sectionFound = true;
                         cleanedContent = string.concat(
                             cleanedContent,
-                            newSection
+                            _newSection
                         );
                     }
                     // Skip this section (marker and following lines)
@@ -338,52 +494,70 @@ contract DeployHatsAVS is Script {
             }
         }
 
+        // Handle the last line
+        cleanedContent = _processLastLine(
+            currentLine,
+            _sectionMarker,
+            sectionFound,
+            skipLines,
+            cleanedContent,
+            _newSection
+        );
+
+        // Write the cleaned content back to the .env file
+        vm.writeFile(_envPath, cleanedContent);
+        console.log("Updated .env file with new deployment addresses");
+    }
+
+    /**
+     * @notice Process the last line of the env file
+     */
+    function _processLastLine(
+        string memory _currentLine,
+        string memory _sectionMarker,
+        bool _sectionFound,
+        bool _skipLines,
+        string memory _cleanedContent,
+        string memory _newSection
+    ) internal pure returns (string memory) {
+        string memory result = _cleanedContent;
+
         // Handle the last line if not empty and doesn't end with newline
-        if (bytes(currentLine).length > 0) {
-            if (stringsEqual(currentLine, sectionMarker)) {
-                if (!sectionFound) {
+        if (bytes(_currentLine).length > 0) {
+            if (stringsEqual(_currentLine, _sectionMarker)) {
+                if (!_sectionFound) {
                     // First occurrence - replace with new section
-                    sectionFound = true;
-                    cleanedContent = string.concat(cleanedContent, newSection);
+                    result = string.concat(result, _newSection);
                 }
                 // Skip this line (it's our marker)
             }
             // Check if it's an empty line or new section (starting with #)
             else if (
-                bytes(currentLine).length == 0 ||
-                (bytes(currentLine).length > 0 && bytes(currentLine)[0] == "#")
+                bytes(_currentLine).length == 0 ||
+                (bytes(_currentLine).length > 0 &&
+                    bytes(_currentLine)[0] == "#")
             ) {
-                cleanedContent = string.concat(
-                    cleanedContent,
-                    currentLine,
-                    "\n"
-                );
+                result = string.concat(result, _currentLine, "\n");
             }
             // Regular line
-            else if (!skipLines) {
-                cleanedContent = string.concat(
-                    cleanedContent,
-                    currentLine,
-                    "\n"
-                );
+            else if (!_skipLines) {
+                result = string.concat(result, _currentLine, "\n");
             }
         }
 
         // If section wasn't found, append it to the end
-        if (!sectionFound) {
+        if (!_sectionFound) {
             // Add a newline if the file doesn't end with one
             if (
-                bytes(cleanedContent).length > 0 &&
-                bytes(cleanedContent)[bytes(cleanedContent).length - 1] != "\n"
+                bytes(result).length > 0 &&
+                bytes(result)[bytes(result).length - 1] != "\n"
             ) {
-                cleanedContent = string.concat(cleanedContent, "\n");
+                result = string.concat(result, "\n");
             }
-            cleanedContent = string.concat(cleanedContent, "\n", newSection);
+            result = string.concat(result, "\n", _newSection);
         }
 
-        // Write the cleaned content back to the .env file
-        vm.writeFile(envPath, cleanedContent);
-        console.log("Updated .env file with new deployment addresses");
+        return result;
     }
 
     /**

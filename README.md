@@ -227,5 +227,51 @@ Parameters:
 - Third parameter (uint256): Hat ID to check eligibility for
 - Fourth parameter (uint256): Hat ID to check status for
 
+## Minting Hats with WAVS Verification
+
+In addition to creating hats and checking eligibility/status, this project also supports minting hats to addresses based on off-chain verification via WAVS.
+
+### HatsAVSMinter
+
+The `HatsAVSMinter` contract enables hat minting with WAVS verification:
+
+1. Something triggers the service.
+2. WAVS operators perform off-chain verification to determine if an address should receive the hat
+3. If verification is successful, the hat is minted to the specified address
+
+### Deploy the Minter Service Component
+
+After deploying the contracts, deploy the WAVS service component for the minter:
+
+```bash
+# Deploy the minter service component
+COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+```
+
+### Testing the Minter
+
+You can test the `HatsAVSMinter` with the following scripts:
+
+```bash
+# Request a hat minting (uses default values)
+forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# Wait a few seconds for WAVS processing
+
+# Check if the hat was minted
+forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
+```
+
+You can also provide custom parameters:
+
+```bash
+# Request hat minting with custom wearer and hat ID
+forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0x1234567890123456789012345678901234567890 42
+
+# Check results with custom parameters
+forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545 --sig "run(address,uint256)" 0x1234567890123456789012345678901234567890 42
+```
+
+
 
 

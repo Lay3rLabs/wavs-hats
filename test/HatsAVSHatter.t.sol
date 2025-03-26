@@ -12,12 +12,12 @@ import {ITypes} from "../src/interfaces/ITypes.sol";
  * in isolation by using the functions directly on a "boundless" mock contract
  */
 contract BoundlessHatsAVSHatter {
-    HatsAVSHatter.HatCreationRequest internal hatRequest;
+    HatsAVSHatter.HatCreationData internal hatRequest;
     ITypes.TriggerId public nextTriggerId;
 
     function setHatRequest(
         ITypes.TriggerId triggerId,
-        HatsAVSHatter.HatCreationRequest memory request
+        HatsAVSHatter.HatCreationData memory request
     ) external {
         // This mocks the internal _hatRequests mapping
         hatRequest = request;
@@ -25,7 +25,7 @@ contract BoundlessHatsAVSHatter {
 
     function getHatRequest(
         ITypes.TriggerId
-    ) external view returns (HatsAVSHatter.HatCreationRequest memory) {
+    ) external view returns (HatsAVSHatter.HatCreationData memory) {
         return hatRequest;
     }
 
@@ -70,8 +70,8 @@ contract HatsAVSHatterTest is Test {
         ITypes.TriggerId triggerId = boundlessHatter.incrementNextTriggerId();
 
         // 3. Store hat creation request (simulate)
-        HatsAVSHatter.HatCreationRequest memory request = HatsAVSHatter
-            .HatCreationRequest({
+        HatsAVSHatter.HatCreationData memory request = HatsAVSHatter
+            .HatCreationData({
                 admin: adminHatId,
                 details: "Test Hat",
                 maxSupply: 10,
@@ -79,7 +79,9 @@ contract HatsAVSHatterTest is Test {
                 toggle: address(0x5),
                 mutable_: true,
                 imageURI: "ipfs://test",
-                requestor: admin
+                requestor: admin,
+                hatId: 0,
+                success: false
             });
 
         boundlessHatter.setHatRequest(triggerId, request);
@@ -88,7 +90,7 @@ contract HatsAVSHatterTest is Test {
         assertEq(ITypes.TriggerId.unwrap(triggerId), 1);
 
         // Verify request was stored correctly
-        HatsAVSHatter.HatCreationRequest memory storedRequest = boundlessHatter
+        HatsAVSHatter.HatCreationData memory storedRequest = boundlessHatter
             .getHatRequest(triggerId);
         assertEq(storedRequest.admin, adminHatId);
         assertEq(storedRequest.requestor, admin);
