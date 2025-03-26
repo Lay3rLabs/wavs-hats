@@ -38,6 +38,16 @@ contract HatsAVSMinter is HatsModule, ITypes {
     }
 
     /**
+     * @notice Struct for the encoded hat and wearer data
+     * @param hatId The hat ID to mint
+     * @param wearer The address that will wear the hat
+     */
+    struct EncodedHatMintingData {
+        uint256 hatId;
+        address wearer;
+    }
+
+    /**
      * @notice Emitted when a hat minting is requested
      * @param triggerId The ID of the trigger
      * @param hatId The hat ID to mint
@@ -132,10 +142,16 @@ contract HatsAVSMinter is HatsModule, ITypes {
         emit HatMintingRequested(triggerId, _hatId, _wearer, msg.sender);
 
         // Create and emit the standard NewTrigger event that WAVS expects
+        // Encode data using the EncodedHatMintingData struct to match Rust decoding
+        EncodedHatMintingData memory encodedData = EncodedHatMintingData({
+            hatId: _hatId,
+            wearer: _wearer
+        });
+
         TriggerInfo memory triggerInfo = TriggerInfo({
             triggerId: triggerId,
             creator: msg.sender,
-            data: abi.encode(_hatId, _wearer)
+            data: abi.encode(encodedData)
         });
 
         emit NewTrigger(abi.encode(triggerInfo));
@@ -164,12 +180,8 @@ contract HatsAVSMinter is HatsModule, ITypes {
         require(mintingData.hatId > 0, "Invalid hat ID");
         require(mintingData.wearer != address(0), "Invalid wearer address");
 
-        // If this is a response to an existing request
-        if (
-            TriggerId.unwrap(nextTriggerId) > 0 &&
-            mintingData.requestor != address(0) &&
-            _mintRequests[TriggerId.wrap(1)].requestor != address(0)
-        ) {
+        // Check if there have been any requests at all
+        if (TriggerId.unwrap(nextTriggerId) > 0) {
             // Find the trigger ID if it exists
             TriggerId foundTriggerId;
             bool found = false;
@@ -187,7 +199,7 @@ contract HatsAVSMinter is HatsModule, ITypes {
                 if (
                     request.hatId == mintingData.hatId &&
                     request.wearer == mintingData.wearer &&
-                    request.requestor == mintingData.requestor
+                    request.requestor != address(0) // Ensure it's a valid request
                 ) {
                     foundTriggerId = tid;
                     found = true;
@@ -229,10 +241,6 @@ contract HatsAVSMinter is HatsModule, ITypes {
 
         // Mint the hat directly if success flag is true
         if (mintingData.success) {
-            // Get admin of the hat using bitwise operations (first 32 bits of hatId)
-            uint256 adminHat = mintingData.hatId &
-                0xFFFFFFFF00000000000000000000000000000000000000000000000000000000;
-
             HATS().mintHat(mintingData.hatId, mintingData.wearer);
 
             // Emit the event

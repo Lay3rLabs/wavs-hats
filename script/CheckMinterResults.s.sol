@@ -15,7 +15,10 @@ contract CheckMinterResults is Script {
     // Define constants
     address constant DEFAULT_WEARER =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint256 constant DEFAULT_HAT_ID = 1;
+
+    // Use the same hat ID format as in MinterTest
+    uint256 constant TOP_HAT_DOMAIN = 1;
+    uint256 constant DEFAULT_HAT_ID = TOP_HAT_DOMAIN << 224;
 
     /**
      * @notice Run the check results script with default values
@@ -38,7 +41,7 @@ contract CheckMinterResults is Script {
         console.log("Hats AVS Minter address:", minterAddr);
         console.log("Hats Protocol address:", hatsAddr);
         console.log("Wearer address:", _wearer);
-        console.log("Hat ID:", _hatId);
+        console.log("Hat ID (formatted):", _hatId);
 
         // Create contract instances
         IHats hats = IHats(hatsAddr);

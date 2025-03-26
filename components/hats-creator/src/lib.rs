@@ -66,7 +66,7 @@ impl Guest for Component {
                     imageURI: "".to_string(),
                     requestor: trigger_info.creator,
                     hatId: Uint::from(0),
-                    success: false,
+                    success: true,
                 };
 
                 // Log success message

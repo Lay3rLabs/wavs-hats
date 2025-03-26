@@ -9,6 +9,8 @@ TODO:
 - Re-test and run examples
 - Finish Hat Creator script + component + docs
 
+NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
+
 ## Overview
 The AVS consists of Solidity contracts that communicate with WAVS and Hats Protocol as well as off-chain Rust components compiled to WASM that implement the actual eligibility and toggle checking logic.
 
@@ -91,21 +93,24 @@ After deployment, the script will add the deployed contract addresses to your `.
 HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=0x...
 HATS_TOGGLE_SERVICE_HANDLER_IMPL=0x...
 HATS_AVS_HATTER_IMPL=0x...
+HATS_AVS_MINTER_IMPL=0x...
 HATS_ELIGIBILITY_SERVICE_HANDLER=0x...
 HATS_TOGGLE_SERVICE_HANDLER=0x...
 HATS_AVS_HATTER=0x...
+HATS_AVS_MINTER=0x...
 HATS_AVS_MANAGER=0x...
 ```
 
-The `DeployHatsAVS` script will fail if there are existing environment variables. You can clean them with:
-
-``` bash
-./clean_env.sh
+Load these new environment variables with:
+```bash
+source .env
 ```
+
+The `DeployHatsAVS` script will fail if there are existing environment variables. You can clean them with `./clean_env.sh`.
 
 ### Deploy Service Components
 
-After deploying the contracts, you need to deploy the WAVS service components:
+After deploying the contracts, you need to deploy all WAVS service components:
 
 ```bash
 # Deploy the eligibility service component
@@ -113,99 +118,87 @@ COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBI
 
 # Deploy the toggle service component
 COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+
+# Deploy the minter service component
+COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 ```
 
-### Testing the Integration
+## Testing the Integration
 
-You can use the following scripts to test the Hats Protocol WAVS integration:
+After deploying all contracts and service components, you can test each component individually:
 
-#### Using Forge Scripts
+### Checking Results
 
-##### SimplifiedTest.s.sol (Basic Testing)
-
-The `SimplifiedTest.s.sol` script is the simplest way to test both eligibility and status checks:
+After running any of the test scripts, you should wait a few seconds for the WAVS services to process the requests. Then, you can check the results:
 
 ```bash
-# Run the simplified test script to send both eligibility and status check requests
-forge script script/SimplifiedTest.s.sol --rpc-url http://localhost:8545 --broadcast
-
-# Wait a few seconds for the WAVS services to process the requests
-
-# Check the results
+# Check all results
 forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545
+
+# Check only eligibility results
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
+
+# Check only toggle results
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
+
+# Check minting results
+forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
 ```
 
-This script performs the following actions:
-- Requests an eligibility check for a specific wearer and hat ID
-- Requests a status check for a hat ID
-- Outputs the trigger IDs that were created
-
-You can also specify parameters:
-```bash
-# Run with custom parameters: mode (0=all, 1=eligibility only, 2=toggle only), account, hatId
-forge script script/SimplifiedTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint8,address,uint256)" 0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
-```
-
-##### CheckHatsAVSResults.s.sol (Checking Results)
-
-After running any of the test scripts, you can use the `CheckHatsAVSResults.s.sol` script to check the results:
-
-```bash
-# Check the results for a specific account and hat IDs
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 1
-```
-
-Parameters:
+Parameters for CheckHatsAVSResults.s.sol:
 - First parameter (uint8): Mode (0=all, 1=eligibility only, 2=toggle only)
 - Second parameter (address): Wearer address to check eligibility for
 - Third parameter (uint256): Hat ID to check eligibility for
 - Fourth parameter (uint256): Hat ID to check status for
 
-## Minting Hats with WAVS Verification
+### Testing Eligibility
 
-In addition to creating hats and checking eligibility/status, this project also supports minting hats to addresses based on off-chain verification via WAVS.
-
-### HatsAVSMinter
-
-The `HatsAVSMinter` contract enables hat minting with WAVS verification:
-
-1. Something triggers the service.
-2. WAVS operators perform off-chain verification to determine if an address should receive the hat
-3. If verification is successful, the hat is minted to the specified address
-
-### Deploy the Minter Service Component
-
-After deploying the contracts, deploy the WAVS service component for the minter:
+To test the eligibility service:
 
 ```bash
-# Deploy the minter service component
-COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+# Request an eligibility check (uses default account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 and hat ID 1)
+forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# You can also specify a custom account and hat ID
+forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 ```
 
-### Testing the Minter
+Check the eligibility results:
+```bash
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
+```
 
-You can test the `HatsAVSMinter` with the following scripts:
+### Testing Toggle
+
+To test the toggle (hat status) service:
+
+```bash
+# Request a status check (uses default hat ID 1)
+forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# You can also specify a custom hat ID
+forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint256)" 1
+```
+
+Check the toggle results:
+```bash
+forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
+```
+
+### Testing Minting
+
+To test the hat minting service:
 
 ```bash
 # Request a hat minting (uses default values)
 forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast
 
-# Wait a few seconds for WAVS processing
+# You can also provide custom parameters
+forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
+```
 
-# Check if the hat was minted
+Check the minting results:
+```bash
 forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
 ```
-
-You can also provide custom parameters:
-
-```bash
-# Request hat minting with custom wearer and hat ID
-forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0x1234567890123456789012345678901234567890 42
-
-# Check results with custom parameters
-forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545 --sig "run(address,uint256)" 0x1234567890123456789012345678901234567890 42
-```
-
-
-
 
