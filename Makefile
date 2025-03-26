@@ -7,7 +7,6 @@ SUDO := $(shell if groups | grep -q docker; then echo ''; else echo 'sudo'; fi)
 default: build
 
 # Customize these variables
-COMPONENT_FILENAME=wavs_hats_toggle.wasm
 TRIGGER_EVENT="NewTrigger(bytes)"
 SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}'
 
