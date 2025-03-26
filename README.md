@@ -3,10 +3,8 @@
 This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-protocol) with [WAVS (WASI Autonomous Verifiable Services)](https://docs.layer.xyz/wavs/overview) to enable automated hat eligibility checks, status management, minting, and creation based onchain or offchain events.
 
 TODO:
-- Rename contracts
-- Simplify where possible
-- Update documentation
-- Re-test and run examples
+- More interesting example WAVS components that serve real use cases
+- Event Trigger cleanup (could be nicer and more gas efficient than shoving everything into `NewTrigger(bytes)`)
 - Finish Hat Creator script + component + docs
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.

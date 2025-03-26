@@ -6,10 +6,7 @@ use bindings::{
     wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent},
     Guest, TriggerAction,
 };
-use wavs_wasi_chain::{
-    decode_event_log_data,
-    ethereum::alloy_primitives::{Address, Uint},
-};
+use wavs_wasi_chain::{decode_event_log_data, ethereum::alloy_primitives::Uint};
 
 sol! {
     type TriggerId is uint64;
