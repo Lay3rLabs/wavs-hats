@@ -126,13 +126,13 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         require(_wearer != address(0), "Invalid wearer address");
         require(_hatId > 0, "Invalid hat ID");
 
-        // Check if enough time has passed since the last check
-        require(
-            block.timestamp >=
-                lastEligibilityChecks[_wearer][_hatId] +
-                    eligibilityCheckCooldown,
-            "Eligibility check cooldown not elapsed"
-        );
+        // // Check if enough time has passed since the last check
+        // require(
+        //     block.timestamp >=
+        //         lastEligibilityChecks[_wearer][_hatId] +
+        //             eligibilityCheckCooldown,
+        //     "Eligibility check cooldown not elapsed"
+        // );
 
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);

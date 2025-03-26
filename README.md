@@ -61,33 +61,6 @@ uint256 hatId = hats.createHat(
 );
 ```
 
-### Requesting Eligibility Checks
-
-```solidity
-// Request an eligibility check for a wearer and hat
-TriggerId triggerId = hatsAVSManager.requestEligibilityCheck(wearerAddress, hatId);
-```
-
-### Requesting Status Checks
-
-```solidity
-// Request a status check for a hat
-TriggerId triggerId = hatsAVSManager.requestStatusCheck(hatId);
-```
-
-### Setting Up Automated Checks
-
-```solidity
-// Set up automated eligibility checks for multiple wearers
-address[] memory wearers = new address[](2);
-wearers[0] = address1;
-wearers[1] = address2;
-hatsAVSManager.setupAutomaticEligibilityChecks(hatId, wearers);
-
-// Set up an automated status check for a hat
-hatsAVSManager.setupAutomaticStatusCheck(hatId);
-```
-
 ## WAVS Service Components
 
 ### Eligibility Component
@@ -211,7 +184,7 @@ You can use the following approaches to test the Hats Protocol WAVS integration:
 Using Forge scripts is the most reliable way to test the integration as it handles the complexity of creating hats and interacting with the contracts:
 
 ```bash
-# 1. Run the simplified test script to send eligibility and status check requests
+# 1. Run the simplified test script to send both eligibility and status check requests
 forge script script/SimplifiedTest.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # 2. Wait a few seconds for the WAVS services to process the requests

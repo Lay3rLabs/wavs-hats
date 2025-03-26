@@ -99,11 +99,11 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         // Input validation
         require(_hatId > 0, "Invalid hat ID");
 
-        // Check if enough time has passed since the last check
-        require(
-            block.timestamp >= lastStatusChecks[_hatId] + statusCheckCooldown,
-            "Status check cooldown not elapsed"
-        );
+        // // Check if enough time has passed since the last check
+        // require(
+        //     block.timestamp >= lastStatusChecks[_hatId] + statusCheckCooldown,
+        //     "Status check cooldown not elapsed"
+        // );
 
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
