@@ -72,6 +72,30 @@ contract HatsAVSHatter is HatsModule, ITypes {
     );
 
     /**
+     * @notice Emitted when a new hat creation trigger is created
+     * @param triggerId The ID of the trigger
+     * @param creator The address that created the trigger
+     * @param admin The admin hat ID
+     * @param details The hat details
+     * @param maxSupply The maximum supply
+     * @param eligibility The eligibility module address
+     * @param toggle The toggle module address
+     * @param mutable_ Whether the hat is mutable
+     * @param imageURI The hat image URI
+     */
+    event HatCreationTrigger(
+        uint64 indexed triggerId,
+        address indexed creator,
+        uint256 indexed admin,
+        string details,
+        uint32 maxSupply,
+        address eligibility,
+        address toggle,
+        bool mutable_,
+        string imageURI
+    );
+
+    /**
      * @notice Initialize the module implementation
      * @param _hats The Hats protocol contract
      * @param _serviceManager The service manager address
@@ -148,22 +172,18 @@ contract HatsAVSHatter is HatsModule, ITypes {
         // Emit the original event for backward compatibility
         emit HatCreationRequested(triggerId, _admin, msg.sender);
 
-        // Create and emit the standard NewTrigger event that WAVS expects
-        TriggerInfo memory triggerInfo = TriggerInfo({
-            triggerId: triggerId,
-            creator: msg.sender,
-            data: abi.encode(
-                _admin,
-                _details,
-                _maxSupply,
-                _eligibility,
-                _toggle,
-                _mutable,
-                _imageURI
-            )
-        });
-
-        emit NewTrigger(abi.encode(triggerInfo));
+        // Emit the new structured event for WAVS
+        emit HatCreationTrigger(
+            TriggerId.unwrap(triggerId),
+            msg.sender,
+            _admin,
+            _details,
+            _maxSupply,
+            _eligibility,
+            _toggle,
+            _mutable,
+            _imageURI
+        );
     }
 
     /**

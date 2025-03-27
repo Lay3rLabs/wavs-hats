@@ -12,14 +12,11 @@ sol! {
     type TriggerId is uint64;
 
     #[derive(Debug)]
-    event NewTrigger(bytes _triggerInfo);
-
-    #[derive(Debug)]
-    struct TriggerInfo {
-        TriggerId triggerId;
-        address creator;
-        bytes data;
-    }
+    event StatusCheckTrigger(
+        uint64 indexed triggerId,
+        address indexed creator,
+        uint256 hatId
+    );
 
     #[derive(Debug)]
     struct StatusResult {
@@ -34,26 +31,24 @@ impl Guest for Component {
     fn run(trigger_action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
-                // Decode the NewTrigger event to get the _triggerInfo bytes
-                let NewTrigger { _triggerInfo } = decode_event_log_data!(log)
-                    .map_err(|e| format!("Failed to decode event log data: {}", e))?;
+                // Decode the StatusCheckTrigger event
+                let StatusCheckTrigger { triggerId, creator: _, hatId } =
+                    decode_event_log_data!(log)
+                        .map_err(|e| format!("Failed to decode event log data: {}", e))?;
 
-                // Decode the _triggerInfo bytes to get the TriggerInfo struct
-                // Return error if we can't decode instead of using fallbacks
-                let trigger_info = TriggerInfo::abi_decode(&_triggerInfo, true)
-                    .map_err(|e| format!("Failed to decode trigger info: {}", e))?;
-
-                eprintln!("Successfully decoded trigger info");
-
-                // Extract the hat ID from data if needed for your logic
-                // In a real implementation, you would analyze the hat ID data
-                // to determine if the hat should be active
+                eprintln!("Successfully decoded status check trigger");
+                eprintln!("Trigger ID: {}", u64::from(triggerId));
+                eprintln!("Hat ID: {}", hatId);
 
                 // For this simplified implementation, we're just setting active to true
+                // In a real implementation, you would use the hatId to determine if the hat should be active
                 let active = true;
 
                 // Create a StatusResult with the proper triggerId from decoded data
-                let result = StatusResult { triggerId: trigger_info.triggerId, active };
+                let result = StatusResult { triggerId, active };
+
+                // Log success message
+                eprintln!("Hat toggle component successfully processed the trigger");
 
                 // Return the ABI-encoded result
                 Ok(Some(result.abi_encode()))

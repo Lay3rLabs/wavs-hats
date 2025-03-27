@@ -76,6 +76,20 @@ contract HatsAVSMinter is HatsModule, ITypes {
     );
 
     /**
+     * @notice Emitted when a new hat minting trigger is created
+     * @param triggerId The ID of the trigger
+     * @param creator The address that created the trigger
+     * @param hatId The hat ID to mint
+     * @param wearer The address that will wear the hat
+     */
+    event MintingTrigger(
+        uint64 indexed triggerId,
+        address indexed creator,
+        uint256 hatId,
+        address wearer
+    );
+
+    /**
      * @notice Initialize the module implementation
      * @param _hats The Hats protocol contract
      * @param _serviceManager The service manager address
@@ -141,20 +155,13 @@ contract HatsAVSMinter is HatsModule, ITypes {
         // Emit the original event for backward compatibility
         emit HatMintingRequested(triggerId, _hatId, _wearer, msg.sender);
 
-        // Create and emit the standard NewTrigger event that WAVS expects
-        // Encode data using the EncodedHatMintingData struct to match Rust decoding
-        EncodedHatMintingData memory encodedData = EncodedHatMintingData({
-            hatId: _hatId,
-            wearer: _wearer
-        });
-
-        TriggerInfo memory triggerInfo = TriggerInfo({
-            triggerId: triggerId,
-            creator: msg.sender,
-            data: abi.encode(encodedData)
-        });
-
-        emit NewTrigger(abi.encode(triggerInfo));
+        // Emit the new structured event for WAVS
+        emit MintingTrigger(
+            TriggerId.unwrap(triggerId),
+            msg.sender,
+            _hatId,
+            _wearer
+        );
     }
 
     /**

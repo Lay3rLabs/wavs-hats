@@ -67,7 +67,7 @@ interface IHatsAVSTrigger is ITypes {
      */
     function getTrigger(
         TriggerId _triggerId
-    ) external view returns (TriggerInfo memory _triggerInfo);
+    ) external view returns (Trigger memory _triggerInfo);
 
     /**
      * @notice Get all triggerIds by creator

@@ -4,7 +4,6 @@ This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-pr
 
 TODO:
 - More interesting example WAVS components that serve real use cases
-- Event Trigger cleanup (could be nicer and more gas efficient than shoving everything into `NewTrigger(bytes)`)
 - Finish Hat Creator script + component + docs
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
@@ -115,10 +114,13 @@ After deploying the contracts, you need to deploy all WAVS service components:
 COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckTrigger(uint64,address,address,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckTrigger(uint64,address,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 
 # Deploy the minter service component
-COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="NewTrigger(bytes)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="MintingTrigger(uint64,address,uint256,address)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+
+# Deploy the creator service component
+COMPONENT_FILENAME=wavs_hats_creator.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_HATTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_HATTER TRIGGER_EVENT="HatCreationTrigger(uint64,address,uint256,string,uint32,address,address,bool,string)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
 ```
 
 ## Testing the Integration
