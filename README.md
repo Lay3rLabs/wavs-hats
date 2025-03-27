@@ -4,7 +4,8 @@ This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-pr
 
 TODO:
 - More interesting example WAVS components that serve real use cases
-- Finish Hat Creator script + component + docs
+- Review by someone more familiar with hats
+- Consider removing triggerId logic? Some examples might be purely offchain triggers
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
 
@@ -111,16 +112,16 @@ After deploying the contracts, you need to deploy all WAVS service components:
 
 ```bash
 # Deploy the eligibility service component
-COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckTrigger(uint64,address,address,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckTrigger(uint64,address,address,uint256)" make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckTrigger(uint64,address,uint256)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckTrigger(uint64,address,uint256)" make deploy-service
 
 # Deploy the minter service component
-COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="MintingTrigger(uint64,address,uint256,address)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="MintingTrigger(uint64,address,uint256,address)" make deploy-service
 
 # Deploy the creator service component
-COMPONENT_FILENAME=wavs_hats_creator.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_HATTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_HATTER TRIGGER_EVENT="HatCreationTrigger(uint64,address,uint256,string,uint32,address,address,bool,string)" SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}' make deploy-service
+COMPONENT_FILENAME=wavs_hats_creator.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_HATTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_HATTER TRIGGER_EVENT="HatCreationTrigger(uint64,address,uint256,string,uint32,address,address,bool,string)" make deploy-service
 ```
 
 ## Testing the Integration
@@ -201,4 +202,31 @@ Check the minting results:
 ```bash
 forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
 ```
+
+### Testing Hat Creation
+
+To test the hat creation service:
+
+```bash
+# Request a hat creation (uses default values)
+forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast
+
+# You can also provide custom parameters
+forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast --sig "run(uint256,string,uint32,address,address,bool,string)" 281474976710656 "Custom Hat" 50 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 true "ipfs://QmCustomHash"
+```
+
+Check the hat creation results:
+```bash
+forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545
+
+# You can also specify a custom admin hat ID
+forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint256)" 281474976710656
+```
+
+The hat creation process involves:
+1. The script checks if you're wearing the admin hat, and if not, creates a top hat that you can use as admin
+2. It then requests hat creation through the HatsAVSHatter contract
+3. WAVS operators detect the request and process it off-chain
+4. The result is then submitted back on-chain
+5. You can check if the hat was created successfully using the CheckCreatorResults script
 
