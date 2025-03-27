@@ -7,8 +7,8 @@ SUDO := $(shell if groups | grep -q docker; then echo ''; else echo 'sudo'; fi)
 default: build
 
 # Customize these variables
-TRIGGER_EVENT="NewTrigger(bytes)"
-SERVICE_CONFIG='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}'
+TRIGGER_EVENT?="NewTrigger(bytes)"
+SERVICE_CONFIG?='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}'
 
 # Define common variables
 CARGO=cargo
@@ -96,7 +96,7 @@ wavs-cli:
 deploy-service:
 	@$(WAVS_CMD) deploy-service --log-level=info --data /data/.docker --home /data \
 	--component "/data/compiled/${COMPONENT_FILENAME}" \
-	--trigger-event-name ${TRIGGER_EVENT} \
+	--trigger-event-name "${TRIGGER_EVENT}" \
 	--trigger-address "${SERVICE_TRIGGER_ADDR}" \
 	--submit-address "${SERVICE_SUBMISSION_ADDR}" \
 	--service-config ${SERVICE_CONFIG}

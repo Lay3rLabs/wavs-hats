@@ -83,6 +83,20 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
     );
 
     /**
+     * @notice Emitted when a new eligibility check trigger is created
+     * @param triggerId The ID of the trigger
+     * @param creator The address that created the trigger
+     * @param wearer The address of the wearer
+     * @param hatId The ID of the hat
+     */
+    event EligibilityCheckTrigger(
+        uint64 indexed triggerId,
+        address indexed creator,
+        address wearer,
+        uint256 hatId
+    );
+
+    /**
      * @notice Initialize the module implementation
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
@@ -151,14 +165,13 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
             _hatId
         );
 
-        // Create and emit the standard NewTrigger event that WAVS expects
-        TriggerInfo memory triggerInfo = TriggerInfo({
-            triggerId: triggerId,
-            creator: msg.sender,
-            data: abi.encode(_wearer, _hatId)
-        });
-
-        emit NewTrigger(abi.encode(triggerInfo));
+        // Emit the new structured event for WAVS
+        emit EligibilityCheckTrigger(
+            TriggerId.unwrap(triggerId),
+            msg.sender,
+            _wearer,
+            _hatId
+        );
     }
 
     /**
@@ -184,6 +197,7 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         );
 
         // Verify triggerId is valid
+        // NOTE: if you're forking this example you may not want to have any of this triggerId logic
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
         // Get the trigger data
