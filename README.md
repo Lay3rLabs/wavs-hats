@@ -1,6 +1,6 @@
 # Hats Protocol WAVS AVS Integration
 
-This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-protocol) with [WAVS (WASI Autonomous Verifiable Services)](https://docs.layer.xyz/wavs/overview) to enable automated hat eligibility checks, status management, minting, and creation based onchain or offchain events.
+This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-protocol) with [WAVS (WASI Autonomous Verifiable Services)](https://docs.wavs.xyz/overview) to enable automated hat eligibility checks, status management, minting, and creation based onchain or offchain events.
 
 TODO:
 - More interesting example WAVS components that serve real use cases
@@ -10,7 +10,7 @@ TODO:
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
 
 ## Overview
-The AVS consists of Solidity contracts that communicate with WAVS and Hats Protocol as well as off-chain Rust components compiled to WASM that implement the actual eligibility and toggle checking logic.
+The AVS consists of Solidity contracts that communicate with WAVS and Hats Protocol as well as off-chain Rust components compiled to WASM that implement the actual eligibility and toggle-checking logic.
 
 Solidity Contracts in `src`:
 1. **HatsEligibilityServiceHandler**: Implements `IHatsEligibility` to check if an address is eligible to wear a hat using WAVS.
@@ -19,7 +19,7 @@ Solidity Contracts in `src`:
 4. **HatsAVSMinter**: Mints new hats to users based on off-chain verification using WAVS.
 
 WASI components in `components`:
-1. **hats-eligibility**: updates eligibity for a particular hat.
+1. **hats-eligibility**: updates eligibility for a particular hat.
 2. **hats-toggle**: toggles active status for a particular hat.
 3. **hats-minter**: mints a new hat to a target address.
 4. **hats-creator**: creates a new kind of hat.
