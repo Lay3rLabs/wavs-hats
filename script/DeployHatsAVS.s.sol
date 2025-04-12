@@ -9,6 +9,7 @@ import {HatsModuleFactory} from "@hats-module/src/HatsModuleFactory.sol";
 // Import Hats Protocol and Hats Module Factory for deployment
 import {Hats} from "hats-protocol/Hats.sol";
 import {Utils} from "./Utils.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
@@ -70,7 +71,44 @@ contract DeployHatsAVS is Script {
             moduleFactoryAddr: moduleFactoryAddr
         });
 
-        updateEnvVars(core, implAddrs, instanceAddrs);
+        // Serialize deployment data to JSON
+        string memory json = "json";
+        json.serialize("deployer", Strings.toHexString(deployer));
+        json.serialize(
+            "serviceManager",
+            Strings.toHexString(serviceManagerAddr)
+        );
+        json.serialize("hatsProtocol", Strings.toHexString(hatsAddr));
+        json.serialize("moduleFactory", Strings.toHexString(moduleFactoryAddr));
+        json.serialize(
+            "eligibilityImpl",
+            Strings.toHexString(implAddrs.eligibilityImplAddr)
+        );
+        json.serialize(
+            "toggleImpl",
+            Strings.toHexString(implAddrs.toggleImplAddr)
+        );
+        json.serialize(
+            "hatterImpl",
+            Strings.toHexString(implAddrs.hatterImplAddr)
+        );
+        json.serialize(
+            "minterImpl",
+            Strings.toHexString(implAddrs.minterImplAddr)
+        );
+        json.serialize(
+            "eligibilityHandler",
+            Strings.toHexString(instanceAddrs.eligibilityHandlerAddr)
+        );
+        json.serialize(
+            "toggleHandler",
+            Strings.toHexString(instanceAddrs.toggleHandlerAddr)
+        );
+        json.serialize("hatter", Strings.toHexString(instanceAddrs.hatterAddr));
+        json.serialize("minter", Strings.toHexString(instanceAddrs.minterAddr));
+
+        // Write JSON to file
+        vm.writeFile("/.docker/script_deploy.json", json);
 
         // Log deployment completion
         console.log("Hats Protocol WAVS AVS integration deployed successfully");
@@ -318,287 +356,5 @@ contract DeployHatsAVS is Script {
         address toggleHandlerAddr;
         address hatterAddr;
         address minterAddr;
-    }
-
-    /**
-     * @notice Update or add Hats AVS addresses to the .env file
-     */
-    function updateEnvVars(
-        CoreAddresses memory _core,
-        ImplementationAddresses memory _impls,
-        InstanceAddresses memory _instances
-    ) internal {
-        string memory projectRoot = vm.projectRoot();
-        string memory envPath = string.concat(projectRoot, "/.env");
-        string memory backupPath = string.concat(projectRoot, "/.env.bak");
-
-        // Create a backup of the .env file
-        _backupEnvFile(envPath, backupPath);
-
-        // Create sections individually to avoid stack depth issues
-        string memory coreSection = _createCoreSection(_core);
-        string memory implSection = _createImplSection(_impls);
-        string memory instanceSection = _createInstanceSection(_instances);
-
-        // Combine all sections
-        string
-            memory sectionMarker = "# Hats Protocol AVS Integration Addresses";
-        string memory newSection = string.concat(
-            coreSection,
-            implSection,
-            instanceSection
-        );
-
-        // Process and update the file
-        _processEnvFile(envPath, sectionMarker, newSection);
-    }
-
-    // Break out section creation into dedicated functions
-    function _createCoreSection(
-        CoreAddresses memory _core
-    ) internal pure returns (string memory) {
-        string
-            memory sectionMarker = "# Hats Protocol AVS Integration Addresses";
-        return
-            string.concat(
-                sectionMarker,
-                "\n",
-                "HATS_PROTOCOL_ADDRESS=",
-                addressToString(_core.hatsAddr),
-                "\n",
-                "HATS_MODULE_FACTORY_ADDRESS=",
-                addressToString(_core.moduleFactoryAddr),
-                "\n"
-            );
-    }
-
-    function _createImplSection(
-        ImplementationAddresses memory _impls
-    ) internal pure returns (string memory) {
-        return
-            string.concat(
-                "HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=",
-                addressToString(_impls.eligibilityImplAddr),
-                "\n",
-                "HATS_TOGGLE_SERVICE_HANDLER_IMPL=",
-                addressToString(_impls.toggleImplAddr),
-                "\n",
-                "HATS_AVS_HATTER_IMPL=",
-                addressToString(_impls.hatterImplAddr),
-                "\n",
-                "HATS_AVS_MINTER_IMPL=",
-                addressToString(_impls.minterImplAddr),
-                "\n"
-            );
-    }
-
-    function _createInstanceSection(
-        InstanceAddresses memory _instances
-    ) internal pure returns (string memory) {
-        return
-            string.concat(
-                "HATS_ELIGIBILITY_SERVICE_HANDLER=",
-                addressToString(_instances.eligibilityHandlerAddr),
-                "\n",
-                "HATS_TOGGLE_SERVICE_HANDLER=",
-                addressToString(_instances.toggleHandlerAddr),
-                "\n",
-                "HATS_AVS_HATTER=",
-                addressToString(_instances.hatterAddr),
-                "\n",
-                "HATS_AVS_MINTER=",
-                addressToString(_instances.minterAddr),
-                "\n"
-            );
-    }
-
-    /**
-     * @notice Create a backup of the env file
-     */
-    function _backupEnvFile(
-        string memory _envPath,
-        string memory _backupPath
-    ) internal {
-        string memory envContent = vm.readFile(_envPath);
-        vm.writeFile(_backupPath, envContent);
-        console.log("Created backup of .env file at:", _backupPath);
-    }
-
-    /**
-     * @notice Process the env file and update it with the new section
-     */
-    function _processEnvFile(
-        string memory _envPath,
-        string memory _sectionMarker,
-        string memory _newSection
-    ) internal {
-        // Read file content
-        string memory content = vm.readFile(_envPath);
-
-        // Process the content line by line manually
-        bytes memory contentBytes = bytes(content);
-        bool sectionFound = false;
-        bool skipLines = false;
-        string memory cleanedContent = "";
-        string memory currentLine = "";
-
-        for (uint i = 0; i < contentBytes.length; i++) {
-            bytes1 char = contentBytes[i];
-
-            // Handle line endings (both \n and \r\n)
-            if (char == "\n") {
-                // Process the line
-                if (stringsEqual(currentLine, _sectionMarker)) {
-                    if (!sectionFound) {
-                        // First occurrence - replace with new section
-                        sectionFound = true;
-                        cleanedContent = string.concat(
-                            cleanedContent,
-                            _newSection
-                        );
-                    }
-                    // Skip this section (marker and following lines)
-                    skipLines = true;
-                }
-                // Check if we hit an empty line or new section (starting with #)
-                else if (
-                    bytes(currentLine).length == 0 ||
-                    (bytes(currentLine).length > 0 &&
-                        bytes(currentLine)[0] == "#")
-                ) {
-                    // Stop skipping lines
-                    skipLines = false;
-                    cleanedContent = string.concat(
-                        cleanedContent,
-                        currentLine,
-                        "\n"
-                    );
-                }
-                // Regular line
-                else if (!skipLines) {
-                    cleanedContent = string.concat(
-                        cleanedContent,
-                        currentLine,
-                        "\n"
-                    );
-                }
-
-                // Reset current line
-                currentLine = "";
-            } else if (char != "\r") {
-                // Skip carriage returns
-                currentLine = string.concat(
-                    currentLine,
-                    string(abi.encodePacked(char))
-                );
-            }
-        }
-
-        // Handle the last line
-        cleanedContent = _processLastLine(
-            currentLine,
-            _sectionMarker,
-            sectionFound,
-            skipLines,
-            cleanedContent,
-            _newSection
-        );
-
-        // Write the cleaned content back to the .env file
-        vm.writeFile(_envPath, cleanedContent);
-        console.log("Updated .env file with new deployment addresses");
-    }
-
-    /**
-     * @notice Process the last line of the env file
-     */
-    function _processLastLine(
-        string memory _currentLine,
-        string memory _sectionMarker,
-        bool _sectionFound,
-        bool _skipLines,
-        string memory _cleanedContent,
-        string memory _newSection
-    ) internal pure returns (string memory) {
-        string memory result = _cleanedContent;
-
-        // Handle the last line if not empty and doesn't end with newline
-        if (bytes(_currentLine).length > 0) {
-            if (stringsEqual(_currentLine, _sectionMarker)) {
-                if (!_sectionFound) {
-                    // First occurrence - replace with new section
-                    result = string.concat(result, _newSection);
-                }
-                // Skip this line (it's our marker)
-            }
-            // Check if it's an empty line or new section (starting with #)
-            else if (
-                bytes(_currentLine).length == 0 ||
-                (bytes(_currentLine).length > 0 &&
-                    bytes(_currentLine)[0] == "#")
-            ) {
-                result = string.concat(result, _currentLine, "\n");
-            }
-            // Regular line
-            else if (!_skipLines) {
-                result = string.concat(result, _currentLine, "\n");
-            }
-        }
-
-        // If section wasn't found, append it to the end
-        if (!_sectionFound) {
-            // Add a newline if the file doesn't end with one
-            if (
-                bytes(result).length > 0 &&
-                bytes(result)[bytes(result).length - 1] != "\n"
-            ) {
-                result = string.concat(result, "\n");
-            }
-            result = string.concat(result, "\n", _newSection);
-        }
-
-        return result;
-    }
-
-    /**
-     * @dev Custom function to compare two strings for equality
-     * @param a The first string
-     * @param b The second string
-     * @return True if the strings are equal, false otherwise
-     */
-    function stringsEqual(
-        string memory a,
-        string memory b
-    ) internal pure returns (bool) {
-        return keccak256(bytes(a)) == keccak256(bytes(b));
-    }
-
-    /**
-     * @dev Convert an address to a string
-     * @param _addr The address to convert
-     * @return The string representation of the address
-     */
-    function addressToString(
-        address _addr
-    ) internal pure returns (string memory) {
-        bytes memory addressBytes = abi.encodePacked(_addr);
-        bytes memory stringBytes = new bytes(42);
-
-        stringBytes[0] = "0";
-        stringBytes[1] = "x";
-
-        for (uint256 i = 0; i < 20; i++) {
-            uint8 leftNibble = uint8(addressBytes[i]) / 16;
-            uint8 rightNibble = uint8(addressBytes[i]) % 16;
-
-            stringBytes[2 + i * 2] = leftNibble < 10
-                ? bytes1(leftNibble + 48)
-                : bytes1(leftNibble + 87);
-            stringBytes[2 + i * 2 + 1] = rightNibble < 10
-                ? bytes1(rightNibble + 48)
-                : bytes1(rightNibble + 87);
-        }
-
-        return string(stringBytes);
     }
 }
