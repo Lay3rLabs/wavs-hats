@@ -3,24 +3,16 @@ mod bindings;
 mod evm;
 mod image;
 mod ipfs;
-mod llama;
 mod llm;
 mod nft;
 
-use std::str::FromStr;
-
-use alloy_primitives::Address;
 use alloy_sol_macro::sol;
 use alloy_sol_types::SolValue;
-use base64;
-use base64::Engine;
 use bindings::{
     export,
     wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent},
     Guest, TriggerAction,
 };
-use evm::query_nft_ownership;
-use nft::{Attribute, NFTMetadata};
 use wavs_wasi_chain::decode_event_log_data;
 use wstd::runtime::block_on;
 
@@ -28,11 +20,13 @@ use wstd::runtime::block_on;
 // You can write solidity code in the macro and it will be available in the component
 // Or you can import the types from a solidity file.
 sol!("../../src/interfaces/ITypes.sol");
+sol! {
+    #[derive(Debug)]
+    event NewTrigger(bytes _triggerInfo);
+}
 
 use crate::llm::{LLMClient, Message, Provider};
-use crate::ITypes::{
-    DataWithId, MintResult, Response, TriggerData, TriggerId, TriggerType, UpdateResult,
-};
+use crate::ITypes::DataWithId;
 
 #[derive(Default)]
 pub struct Component;
@@ -41,160 +35,45 @@ impl Guest for Component {
     /// @dev This function is called when a WAVS trigger action is fired.
     fn run(action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         // Decode the trigger event
-        let trigger: DataWithId = match action.data {
+        let trigger_info = match action.data {
             // Fired from an Ethereum contract event.
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
-                decode_event_log_data!(log)
-                    .map_err(|e| format!("Failed to decode event log data: {}", e))
+                let event: NewTrigger = decode_event_log_data!(log)
+                    .map_err(|e| format!("Failed to decode event log data: {}", e))?;
+
+                // Decode the trigger info bytes into DataWithId
+                DataWithId::abi_decode(&event._triggerInfo, false)
+                    .map_err(|e| format!("Failed to decode trigger info: {}", e))?
             }
             // Fired from a raw data event (e.g. from a CLI command or from another component).
             TriggerData::Raw(_) => {
                 unimplemented!("Raw data is not supported yet");
             }
-            _ => Err("Unsupported trigger data type".to_string()),
-        }?;
+            _ => Err("Unsupported trigger data type".to_string())?,
+        };
 
-        eprintln!("Processing Trigger ID: {}", trigger.id);
-        eprintln!("Prompt: {}", &trigger.prompt);
+        // The data field contains the actual prompt/message to be processed
+        let prompt = std::str::from_utf8(&trigger_info.data)
+            .map_err(|e| format!("Failed to decode prompt from bytes: {}", e))?;
 
-        block_on(async move {
-            // Initialize LLM client and query
-            let client = LLMClient::new(Provider::Ollama, "llama2")
+        // TODO get system prompt and user prompt from hats nfts tokenURI
+
+        // Process the prompt using the LLM client
+        let result = block_on(async {
+            let client = LLMClient::new(Provider::Ollama, "llama3.1")
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
+            let messages = vec![Message { role: "user".to_string(), content: prompt.to_string() }];
+            client.chat_completion(&messages, None).await
+        })?;
 
-            let messages =
-                vec![Message { role: "user".to_string(), content: trigger.prompt.clone() }];
-
-            let response = client
-                .chat_completion(&messages, None)
-                .await
-                .map_err(|e| format!("Failed to get LLM response: {}", e))?;
-            eprintln!("Response: {}", response);
-
-            // Check the creator's ETH balance
-            let sender_address = trigger.sender.to_string();
-            eprintln!("Checking balance for address: {}", sender_address);
-
-            let mut attributes =
-                vec![Attribute { trait_type: "Prompt".to_string(), value: trigger.prompt.clone() }];
-
-            // TODO get nft contract address from KV store
-            let nft_contract = std::env::var("nft_contract")
-                .map_err(|e| format!("Failed to get nft contract: {}", e))?;
-            eprintln!("NFT contract: {}", nft_contract);
-
-            // Query NFT balance and add a "wealth" attribute if balance > 1 ETH
-            let owns_nft =
-                query_nft_ownership(trigger.sender, Address::from_str(&nft_contract).unwrap())
-                    .await?;
-            if owns_nft {
-                eprintln!("NFT owner: {}", trigger.sender);
-                attributes.push(Attribute {
-                    trait_type: "Wealth Level".to_string(),
-                    value: "Rich".to_string(),
-                });
-            } else {
-                eprintln!("Sender {} does not own NFT", trigger.sender);
-                attributes.push(Attribute {
-                    trait_type: "Wealth Level".to_string(),
-                    value: "Pre-Rich".to_string(),
-                });
+        // Return the result encoded as DataWithId
+        Ok(Some(
+            DataWithId {
+                triggerId: trigger_info.triggerId,
+                data: result.as_bytes().to_vec().into(),
             }
-
-            // Generate image with Stable Diffusion
-            let image_data = image::generate_deterministic_image(&response).await?;
-
-            // Extract base64 data from data URI
-            let base64_data = image_data
-                .strip_prefix("data:image/png;base64,")
-                .ok_or_else(|| "Invalid image data format".to_string())?;
-
-            // Decode base64 to raw bytes
-            let image_bytes = base64::engine::general_purpose::STANDARD
-                .decode(base64_data)
-                .map_err(|e| format!("Failed to decode base64 image: {}", e))?;
-
-            // Upload image to IPFS first
-            let ipfs_url = std::env::var("WAVS_ENV_IPFS_API_URL")
-                .unwrap_or_else(|_| "https://node.lighthouse.storage/api/v0/add".to_string());
-            let image_uri = match ipfs::upload_nft_content("image/png", &image_bytes, &ipfs_url)
-                .await
-            {
-                Ok(ipfs_uri) => {
-                    eprintln!("Uploaded image to IPFS: {}", ipfs_uri);
-                    ipfs_uri
-                }
-                Err(e) => {
-                    eprintln!("Failed to upload image to IPFS, falling back to data URI: {}", e);
-                    // Fall back to data URI if IPFS upload fails
-                    image_data
-                }
-            };
-
-            // Create NFT metadata
-            let metadata = NFTMetadata {
-                name: "AI Generated NFT".to_string(),
-                description: response.to_string(),
-                image: image_uri,
-                attributes,
-            };
-            eprintln!("Metadata: {:?}", metadata);
-
-            // Serialize metadata to JSON for IPFS upload
-            let json = serde_json::to_string(&metadata)
-                .map_err(|e| format!("JSON serialization error: {}", e))?;
-
-            // Upload metadata to IPFS
-            let token_uri = match ipfs::upload_nft_content(
-                "application/json",
-                json.as_bytes(),
-                &ipfs_url,
-            )
-            .await
-            {
-                Ok(ipfs_uri) => {
-                    eprintln!("Uploaded metadata to IPFS: {}", ipfs_uri);
-                    ipfs_uri
-                }
-                Err(e) => {
-                    eprintln!("Failed to upload to IPFS, falling back to data URI: {}", e);
-                    // Fall back to data URI if IPFS upload fails
-                    format!(
-                        "data:application/json;base64,{}",
-                        base64::engine::general_purpose::STANDARD.encode(json)
-                    )
-                }
-            };
-
-            // Create the output based on the trigger type
-            let output = match trigger.trigger_type {
-                TriggerType::MINT => Response {
-                    trigger_type: TriggerType::MINT,
-                    id: trigger.id,
-                    data: MintResult {
-                        id: trigger.id.into(),
-                        recipient: trigger.sender,
-                        token_uri,
-                    }
-                    .abi_encode()
-                    .into(),
-                },
-                TriggerType::UPDATE => Response {
-                    trigger_type: TriggerType::UPDATE,
-                    id: trigger.id,
-                    data: UpdateResult {
-                        id: trigger.id.into(),
-                        owner: trigger.sender,
-                        token_uri,
-                        token_id: trigger.token_id,
-                    }
-                    .abi_encode()
-                    .into(),
-                },
-            };
-
-            Ok(Some(output.abi_encode()))
-        })
+            .abi_encode(),
+        ))
     }
 }
 

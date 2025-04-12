@@ -1,5 +1,5 @@
 [package]
-name = "autonomous-artist"
+name = "hats-agent"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
@@ -42,5 +42,5 @@ strip = true
 lto = true
 
 [package.metadata.component]
-package = "component:autonomous-artist"
+package = "component:hats-agent"
 target = "wavs:worker/layer-trigger-world@0.3.0-beta"
