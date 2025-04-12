@@ -25,7 +25,7 @@ sol! {
     event NewTrigger(bytes _triggerInfo);
 }
 
-use crate::llm::{LLMClient, Message, Provider};
+use crate::llm::{LLMClient, Message};
 use crate::ITypes::DataWithId;
 
 #[derive(Default)]
@@ -60,10 +60,10 @@ impl Guest for Component {
 
         // Process the prompt using the LLM client
         let result = block_on(async {
-            let client = LLMClient::new(Provider::Ollama, "llama3.1")
+            let client = LLMClient::new("llama3.1")
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
             let messages = vec![Message { role: "user".to_string(), content: prompt.to_string() }];
-            client.chat_completion(&messages, None).await
+            client.chat_completion(&messages).await
         })?;
 
         // Return the result encoded as DataWithId
