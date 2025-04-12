@@ -7,3 +7,6 @@
 [submodule "lib/staking-eligibility"]
 	path = lib/staking-eligibility
 	url = https://github.com/Hats-Protocol/staking-eligibility
+[submodule "lib/chain-modules"]
+	path = lib/chain-modules
+	url = https://github.com/Hats-Protocol/chain-modules
