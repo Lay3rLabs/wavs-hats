@@ -710,33 +710,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
-name = "autonomous-artist"
-version = "0.3.0"
-dependencies = [
- "alloy-network",
- "alloy-primitives",
- "alloy-provider",
- "alloy-rpc-types",
- "alloy-sol-macro",
- "alloy-sol-types",
- "alloy-transport-http",
- "anyhow",
- "base64",
- "cid",
- "ethabi",
- "hex",
- "mockall",
- "multihash",
- "primitive-types 0.13.1",
- "serde",
- "serde_json",
- "url",
- "wavs-wasi-chain",
- "wit-bindgen-rt 0.39.0",
- "wstd",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1600,6 +1573,33 @@ dependencies = [
  "equivalent",
  "foldhash",
  "serde",
+]
+
+[[package]]
+name = "hats-agent"
+version = "0.3.0"
+dependencies = [
+ "alloy-network",
+ "alloy-primitives",
+ "alloy-provider",
+ "alloy-rpc-types",
+ "alloy-sol-macro",
+ "alloy-sol-types",
+ "alloy-transport-http",
+ "anyhow",
+ "base64",
+ "cid",
+ "ethabi",
+ "hex",
+ "mockall",
+ "multihash",
+ "primitive-types 0.13.1",
+ "serde",
+ "serde_json",
+ "url",
+ "wavs-wasi-chain",
+ "wit-bindgen-rt 0.39.0",
+ "wstd",
 ]
 
 [[package]]
