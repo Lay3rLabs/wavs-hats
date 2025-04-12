@@ -4,6 +4,7 @@ mod evm;
 mod image;
 mod ipfs;
 mod llama;
+mod llm;
 mod nft;
 
 use std::str::FromStr;
@@ -26,45 +27,56 @@ use wstd::runtime::block_on;
 // Use the sol! macro to import needed solidity types
 // You can write solidity code in the macro and it will be available in the component
 // Or you can import the types from a solidity file.
-sol!("../../src/interfaces/IWavsNftServiceTypes.sol");
+sol!("../../src/interfaces/ITypes.sol");
 
-use crate::IWavsNftServiceTypes::{
-    WavsMintResult, WavsNftTrigger, WavsResponse, WavsTriggerType, WavsUpdateResult,
+use crate::llm::{LLMClient, Message, Provider};
+use crate::ITypes::{
+    DataWithId, MintResult, Response, TriggerData, TriggerId, TriggerType, UpdateResult,
 };
-struct Component;
+
+#[derive(Default)]
+pub struct Component;
 
 impl Guest for Component {
     /// @dev This function is called when a WAVS trigger action is fired.
     fn run(action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         // Decode the trigger event
-        let WavsNftTrigger { sender, prompt, triggerId, wavsTriggerType, tokenId } =
-            match action.data {
-                // Fired from an Ethereum contract event.
-                TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
-                    decode_event_log_data!(log)
-                        .map_err(|e| format!("Failed to decode event log data: {}", e))
-                }
-                // Fired from a raw data event (e.g. from a CLI command or from another component).
-                TriggerData::Raw(_) => {
-                    unimplemented!("Raw data is not supported yet");
-                }
-                _ => Err("Unsupported trigger data type".to_string()),
-            }?;
+        let trigger: DataWithId = match action.data {
+            // Fired from an Ethereum contract event.
+            TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
+                decode_event_log_data!(log)
+                    .map_err(|e| format!("Failed to decode event log data: {}", e))
+            }
+            // Fired from a raw data event (e.g. from a CLI command or from another component).
+            TriggerData::Raw(_) => {
+                unimplemented!("Raw data is not supported yet");
+            }
+            _ => Err("Unsupported trigger data type".to_string()),
+        }?;
 
-        eprintln!("Processing Trigger ID: {}", triggerId);
-        eprintln!("Prompt: {}", &prompt);
+        eprintln!("Processing Trigger ID: {}", trigger.id);
+        eprintln!("Prompt: {}", &trigger.prompt);
 
         block_on(async move {
-            // Query Ollama
-            let response = llama::query_ollama(&prompt).await?;
+            // Initialize LLM client and query
+            let client = LLMClient::new(Provider::Ollama, "llama2")
+                .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
+
+            let messages =
+                vec![Message { role: "user".to_string(), content: trigger.prompt.clone() }];
+
+            let response = client
+                .chat_completion(&messages, None)
+                .await
+                .map_err(|e| format!("Failed to get LLM response: {}", e))?;
             eprintln!("Response: {}", response);
 
             // Check the creator's ETH balance
-            let sender_address = sender.to_string();
+            let sender_address = trigger.sender.to_string();
             eprintln!("Checking balance for address: {}", sender_address);
 
             let mut attributes =
-                vec![Attribute { trait_type: "Prompt".to_string(), value: prompt.clone() }];
+                vec![Attribute { trait_type: "Prompt".to_string(), value: trigger.prompt.clone() }];
 
             // TODO get nft contract address from KV store
             let nft_contract = std::env::var("nft_contract")
@@ -73,15 +85,16 @@ impl Guest for Component {
 
             // Query NFT balance and add a "wealth" attribute if balance > 1 ETH
             let owns_nft =
-                query_nft_ownership(sender, Address::from_str(&nft_contract).unwrap()).await?;
+                query_nft_ownership(trigger.sender, Address::from_str(&nft_contract).unwrap())
+                    .await?;
             if owns_nft {
-                eprintln!("NFT owner: {}", sender);
+                eprintln!("NFT owner: {}", trigger.sender);
                 attributes.push(Attribute {
                     trait_type: "Wealth Level".to_string(),
                     value: "Rich".to_string(),
                 });
             } else {
-                eprintln!("Sender {} does not own NFT", sender);
+                eprintln!("Sender {} does not own NFT", trigger.sender);
                 attributes.push(Attribute {
                     trait_type: "Wealth Level".to_string(),
                     value: "Pre-Rich".to_string(),
@@ -154,31 +167,30 @@ impl Guest for Component {
             };
 
             // Create the output based on the trigger type
-            let output = match wavsTriggerType {
-                0 => WavsResponse {
-                    wavsTriggerType: WavsTriggerType::MINT,
-                    triggerId,
-                    data: WavsMintResult {
-                        triggerId: triggerId.into(),
-                        recipient: sender,
-                        tokenURI: token_uri,
+            let output = match trigger.trigger_type {
+                TriggerType::MINT => Response {
+                    trigger_type: TriggerType::MINT,
+                    id: trigger.id,
+                    data: MintResult {
+                        id: trigger.id.into(),
+                        recipient: trigger.sender,
+                        token_uri,
                     }
                     .abi_encode()
                     .into(),
                 },
-                1 => WavsResponse {
-                    wavsTriggerType: WavsTriggerType::UPDATE,
-                    triggerId,
-                    data: WavsUpdateResult {
-                        triggerId: triggerId.into(),
-                        owner: sender,
-                        tokenURI: token_uri,
-                        tokenId,
+                TriggerType::UPDATE => Response {
+                    trigger_type: TriggerType::UPDATE,
+                    id: trigger.id,
+                    data: UpdateResult {
+                        id: trigger.id.into(),
+                        owner: trigger.sender,
+                        token_uri,
+                        token_id: trigger.token_id,
                     }
                     .abi_encode()
                     .into(),
                 },
-                _ => return Err("Invalid trigger type".to_string()),
             };
 
             Ok(Some(output.abi_encode()))
