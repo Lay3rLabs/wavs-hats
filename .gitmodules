@@ -10,3 +10,6 @@
 [submodule "lib/chain-modules"]
 	path = lib/chain-modules
 	url = https://github.com/Hats-Protocol/chain-modules
+[submodule "lib/hats-zodiac"]
+	path = lib/hats-zodiac
+	url = https://github.com/Hats-Protocol/hats-zodiac
