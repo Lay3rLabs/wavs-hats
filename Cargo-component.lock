@@ -9,8 +9,3 @@ name = "wavs:worker"
 requirement = "^0.3.0"
 version = "0.3.0"
 digest = "sha256:dbbc4632d367c5eb0cbe91438a961c443ecad81260a36007fe9269539bed6c41"
-
-[[package.version]]
-requirement = "^0.4.0-alpha.1"
-version = "0.4.0-alpha.2"
-digest = "sha256:6b8578c639c35ca2fd53c2cb7c357e29e62a605ebe4b3180bd5ad00f069d3624"

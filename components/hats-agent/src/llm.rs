@@ -230,6 +230,7 @@ mod tests {
         env::set_var("WAVS_ENV_OLLAMA_API_URL", "http://localhost:11434");
     }
 
+    // Unit tests that don't require HTTP requests
     #[test]
     fn test_llm_client_initialization() {
         setup_test_env();
@@ -261,115 +262,130 @@ mod tests {
         assert!(result.unwrap_err().contains("Messages cannot be empty"));
     }
 
-    #[cfg(feature = "ollama")]
-    mod ollama {
+    // Integration tests that require HTTP - only run in WASI environment
+    #[cfg(all(test, target_arch = "wasm32"))]
+    mod integration {
         use super::*;
 
-        fn init() {
-            env::set_var("RUST_LOG", "debug");
-            env_logger::init();
-        }
+        #[cfg(feature = "ollama")]
+        mod ollama {
+            use super::*;
 
-        #[test]
-        fn test_ollama_chat_completion() {
-            init();
-            println!("Initializing Ollama client...");
-            let client = LLMClient::new("llama3.2").unwrap();
-            println!("Client initialized successfully");
+            fn init() {
+                env::set_var("RUST_LOG", "debug");
+                env_logger::init();
+            }
 
-            let messages = vec![
-                Message {
-                    role: "system".to_string(),
-                    content: "You are a helpful math assistant".to_string(),
-                },
-                Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
-            ];
-            println!("Sending test message: {:?}", messages);
+            #[test]
+            fn test_ollama_chat_completion() {
+                init();
+                println!("Initializing Ollama client...");
+                let client = LLMClient::new("llama3.2").unwrap();
+                println!("Client initialized successfully");
 
-            let result = block_on(async {
-                match client.chat_completion(&messages).await {
-                    Ok(response) => {
-                        println!("Received successful response");
-                        Ok(response)
+                let messages = vec![
+                    Message {
+                        role: "system".to_string(),
+                        content: "You are a helpful math assistant".to_string(),
+                    },
+                    Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
+                ];
+                println!("Sending test message: {:?}", messages);
+
+                let result = block_on(async {
+                    match client.chat_completion(&messages).await {
+                        Ok(response) => {
+                            println!("Received successful response");
+                            Ok(response)
+                        }
+                        Err(e) => {
+                            println!("Error during chat completion: {}", e);
+                            Err(e)
+                        }
+                    }
+                });
+
+                match result {
+                    Ok(content) => {
+                        println!("Test successful! Response: {}", content);
+                        assert!(!content.is_empty());
                     }
                     Err(e) => {
-                        println!("Error during chat completion: {}", e);
-                        Err(e)
+                        println!("Test failed with error: {}", e);
+                        panic!("Test failed: {}", e);
                     }
                 }
-            });
+            }
+        }
 
-            match result {
-                Ok(content) => {
-                    println!("Test successful! Response: {}", content);
-                    assert!(!content.is_empty());
+        #[cfg(feature = "openai")]
+        mod openai {
+            use super::*;
+
+            fn validate_config() -> Result<(), String> {
+                // Check required variables
+                let required_vars = ["WAVS_ENV_OPENAI_API_KEY"];
+
+                for var in required_vars {
+                    std::env::var(var)
+                        .map_err(|_| format!("Missing required variable: {}", var))?;
                 }
-                Err(e) => {
-                    println!("Test failed with error: {}", e);
-                    panic!("Test failed: {}", e);
+                Ok(())
+            }
+
+            #[test]
+            fn test_openai_chat_completion() {
+                // Validate environment configuration
+                if let Err(e) = validate_config() {
+                    println!("Skipping OpenAI test: {}", e);
+                    return;
+                }
+
+                println!("Initializing OpenAI client...");
+                let client = LLMClient::new("gpt-3.5-turbo").unwrap();
+                println!("Client initialized successfully");
+
+                let messages = vec![
+                    Message {
+                        role: "system".to_string(),
+                        content: "You are a helpful math assistant".to_string(),
+                    },
+                    Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
+                ];
+                println!("Sending test message: {:?}", messages);
+
+                let result = block_on(async {
+                    match client.chat_completion(&messages).await {
+                        Ok(response) => {
+                            println!("Received successful response");
+                            Ok(response)
+                        }
+                        Err(e) => {
+                            println!("Error during chat completion: {}", e);
+                            Err(e)
+                        }
+                    }
+                });
+
+                match result {
+                    Ok(content) => {
+                        println!("Test successful! Response: {}", content);
+                        assert!(!content.is_empty());
+                    }
+                    Err(e) => {
+                        println!("Test failed with error: {}", e);
+                        panic!("Test failed: {}", e);
+                    }
                 }
             }
         }
     }
 
-    #[cfg(feature = "openai")]
-    mod openai {
-        use super::*;
-
-        fn validate_config() -> Result<(), String> {
-            // Check required variables
-            let required_vars = ["WAVS_ENV_OPENAI_API_KEY"];
-
-            for var in required_vars {
-                std::env::var(var).map_err(|_| format!("Missing required variable: {}", var))?;
-            }
-            Ok(())
-        }
-
-        #[test]
-        fn test_openai_chat_completion() {
-            // Validate environment configuration
-            if let Err(e) = validate_config() {
-                println!("Skipping OpenAI test: {}", e);
-                return;
-            }
-
-            println!("Initializing OpenAI client...");
-            let client = LLMClient::new("gpt-3.5-turbo").unwrap();
-            println!("Client initialized successfully");
-
-            let messages = vec![
-                Message {
-                    role: "system".to_string(),
-                    content: "You are a helpful math assistant".to_string(),
-                },
-                Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
-            ];
-            println!("Sending test message: {:?}", messages);
-
-            let result = block_on(async {
-                match client.chat_completion(&messages).await {
-                    Ok(response) => {
-                        println!("Received successful response");
-                        Ok(response)
-                    }
-                    Err(e) => {
-                        println!("Error during chat completion: {}", e);
-                        Err(e)
-                    }
-                }
-            });
-
-            match result {
-                Ok(content) => {
-                    println!("Test successful! Response: {}", content);
-                    assert!(!content.is_empty());
-                }
-                Err(e) => {
-                    println!("Test failed with error: {}", e);
-                    panic!("Test failed: {}", e);
-                }
-            }
-        }
+    // Add a note about integration tests when running natively
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_integration_tests_note() {
+        println!("Note: Integration tests are skipped when running natively.");
+        println!("To run integration tests, use `cargo wasi test` or run in a WASI environment.");
     }
 }

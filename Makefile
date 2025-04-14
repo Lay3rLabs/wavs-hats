@@ -7,8 +7,10 @@ SUDO := $(shell if groups | grep -q docker; then echo ''; else echo 'sudo'; fi)
 default: build
 
 # Customize these variables
+PROMPT?="hello"
+COMPONENT_FILENAME?="hats_agent.wasm"
 TRIGGER_EVENT?="NewTrigger(bytes)"
-SERVICE_CONFIG?='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":[],"kv":[],"workflow_id":"default","component_id":"default"}'
+SERVICE_CONFIG?='{"fuel_limit":100000000,"max_gas":5000000,"host_envs":["WAVS_ENV_OPENAI_API_KEY", "WAVS_ENV_OPENAI_API_URL", "WAVS_ENV_OLLAMA_API_URL"],"kv":[],"workflow_id":"default","component_id":"default"}'
 
 # Define common variables
 CARGO=cargo
@@ -34,12 +36,11 @@ wasi-build:
 	@mkdir -p ./compiled
 	@cp ./target/wasm32-wasip1/release/*.wasm ./compiled/
 
-## wasi-exec: executing the WAVS wasi component(s) | COMPONENT_FILENAME, COIN_MARKET_CAP_ID
-## TODO fix this or make it more useful in docs
+## wasi-exec: executing the WAVS wasi component(s) | COMPONENT_FILENAME, PROMPT
 wasi-exec:
 	@$(WAVS_CMD) exec --log-level=info --data /data/.docker --home /data \
 	--component "/data/compiled/${COMPONENT_FILENAME}" \
-	--input `cast format-bytes32-string $(COIN_MARKET_CAP_ID)`
+	--input `cast from-utf8 $(PROMPT)`
 
 ## update-submodules: update the git submodules
 update-submodules:

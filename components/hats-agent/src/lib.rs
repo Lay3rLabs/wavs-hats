@@ -10,7 +10,7 @@ use alloy_sol_macro::sol;
 use alloy_sol_types::SolValue;
 use bindings::{
     export,
-    wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent, WasmResponse},
+    wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent},
     Guest, TriggerAction,
 };
 use wavs_wasi_chain::decode_event_log_data;
@@ -33,7 +33,7 @@ pub struct Component;
 
 impl Guest for Component {
     /// @dev This function is called when a WAVS trigger action is fired.
-    fn run(action: TriggerAction) -> std::result::Result<Option<WasmResponse>, String> {
+    fn run(action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         // Decode the trigger event
         let trigger_info = match action.data {
             // Fired from an Ethereum contract event.
@@ -46,8 +46,10 @@ impl Guest for Component {
                     .map_err(|e| format!("Failed to decode trigger info: {}", e))?
             }
             // Fired from a raw data event (e.g. from a CLI command or from another component).
-            TriggerData::Raw(_) => {
-                unimplemented!("Raw data is not supported yet");
+            TriggerData::Raw(data) => {
+                let prompt = std::str::from_utf8(&data)
+                    .map_err(|e| format!("Failed to decode prompt from bytes: {}", e))?;
+                DataWithId { triggerId: 0, data: prompt.to_string().into() }
             }
             _ => Err("Unsupported trigger data type".to_string())?,
         };
@@ -74,8 +76,23 @@ impl Guest for Component {
         }
         .abi_encode();
 
-        Ok(Some(WasmResponse { payload: encoded, ordering: None }))
+        Ok(Some(encoded))
     }
 }
 
 export!(Component with_types_in bindings);
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use anyhow::Result;
+
+//     // Test helper functions
+//     fn setup_test_component() -> Component {
+//         Component::default()
+//     }
+
+//     // fn create_test_trigger() -> TriggerAction {
+//     //     mock_trigger(b"test data")
+//     // }
+// }
