@@ -1,10 +1,18 @@
 [package]
 name = "hats-agent"
-edition.workspace = true
 version.workspace = true
+edition.workspace = true
 authors.workspace = true
 rust-version.workspace = true
 repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+ollama = [] # Feature flag for testing Ollama integration
+openai = [] # Feature flag for testing OpenAI integration
 
 [dependencies]
 wavs-wasi-chain = { workspace = true }
@@ -30,9 +38,7 @@ url = "2.3.1"
 
 [dev-dependencies]
 mockall = "0.11"
-
-[lib]
-crate-type = ["cdylib"]
+env_logger = "0.11"
 
 [profile.release]
 codegen-units = 1
@@ -43,4 +49,4 @@ lto = true
 
 [package.metadata.component]
 package = "component:hats-agent"
-target = "wavs:worker/layer-trigger-world@0.3.0-beta"
+target = "wavs:worker/layer-trigger-world@0.4.0-alpha.1"

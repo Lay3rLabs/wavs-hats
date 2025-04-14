@@ -10,7 +10,7 @@ use alloy_sol_macro::sol;
 use alloy_sol_types::SolValue;
 use bindings::{
     export,
-    wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent},
+    wavs::worker::layer_types::{TriggerData, TriggerDataEthContractEvent, WasmResponse},
     Guest, TriggerAction,
 };
 use wavs_wasi_chain::decode_event_log_data;
@@ -33,7 +33,7 @@ pub struct Component;
 
 impl Guest for Component {
     /// @dev This function is called when a WAVS trigger action is fired.
-    fn run(action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
+    fn run(action: TriggerAction) -> std::result::Result<Option<WasmResponse>, String> {
         // Decode the trigger event
         let trigger_info = match action.data {
             // Fired from an Ethereum contract event.
@@ -64,16 +64,17 @@ impl Guest for Component {
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
             let messages = vec![Message { role: "user".to_string(), content: prompt.to_string() }];
             client.chat_completion(&messages).await
-        })?;
+        })
+        .map_err(|e| format!("Failed to get chat completion: {}", e))?;
 
         // Return the result encoded as DataWithId
-        Ok(Some(
-            DataWithId {
-                triggerId: trigger_info.triggerId,
-                data: result.as_bytes().to_vec().into(),
-            }
-            .abi_encode(),
-        ))
+        let encoded = DataWithId {
+            triggerId: trigger_info.triggerId,
+            data: result.as_bytes().to_vec().into(),
+        }
+        .abi_encode();
+
+        Ok(Some(WasmResponse { payload: encoded, ordering: None }))
     }
 }
 
