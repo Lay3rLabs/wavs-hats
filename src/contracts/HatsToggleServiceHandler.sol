@@ -160,6 +160,7 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
         // Verify triggerId is valid
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
+        // TODO don't do this, just pass around hat directly to save storage.
         // Get the hat ID from trigger data
         uint256 hatId = _triggerData[result.triggerId];
 

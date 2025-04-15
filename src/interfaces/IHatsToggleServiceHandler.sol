@@ -51,6 +51,7 @@ interface IHatsToggleServiceHandler is
      */
     event StatusResultReceived(TriggerId indexed triggerId, bool active);
 
+    // TODO kill
     /**
      * @notice Request a status check for a hat ID
      * @param _hatId The ID of the hat
@@ -60,6 +61,7 @@ interface IHatsToggleServiceHandler is
         uint256 _hatId
     ) external returns (TriggerId triggerId);
 
+    // TODO kill
     /**
      * @notice Check the latest status result for a hat ID
      * @param _hatId The ID of the hat

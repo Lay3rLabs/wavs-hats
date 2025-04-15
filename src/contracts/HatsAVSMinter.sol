@@ -143,6 +143,7 @@ contract HatsAVSMinter is HatsModule, ITypes {
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
 
+        // TODO do we need this?
         // Store hat minting request
         _mintRequests[triggerId] = HatMintingData({
             hatId: _hatId,
@@ -187,6 +188,7 @@ contract HatsAVSMinter is HatsModule, ITypes {
         require(mintingData.hatId > 0, "Invalid hat ID");
         require(mintingData.wearer != address(0), "Invalid wearer address");
 
+        // TODO this all seems overly complicated
         // Check if there have been any requests at all
         if (TriggerId.unwrap(nextTriggerId) > 0) {
             // Find the trigger ID if it exists
@@ -198,6 +200,7 @@ contract HatsAVSMinter is HatsModule, ITypes {
             uint64 current = TriggerId.unwrap(nextTriggerId);
             uint64 startCheck = current > maxCheck ? current - maxCheck : 1;
 
+            // TODO KILL, this for loop is so fucked. WTF?
             for (uint64 i = startCheck; i <= current; i++) {
                 TriggerId tid = TriggerId.wrap(i);
                 HatMintingData storage request = _mintRequests[tid];

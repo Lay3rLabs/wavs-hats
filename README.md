@@ -3,22 +3,33 @@
 This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-protocol) with [WAVS (WASI Autonomous Verifiable Services)](https://docs.layer.xyz/wavs/overview) to enable automated hat eligibility checks, status management, minting, and creation based onchain or offchain events.
 
 TODO:
-- More interesting example WAVS components that serve real use cases
-- Review by someone more familiar with hats
-- Consider removing triggerId logic? Some examples might be purely offchain triggers
+
+- [ ] Consolidate all service types into IHatsAvsTypes.sol
+- [ ] Rename contracts to be nicer
+- [ ] Remove unneeded trigger logic code
+- [ ] Make agent support both openai and llama (struggling with environment variable testing)
+- [ ] Make agent support tools
+- [ ] Deploy hats with zodiac
+- [ ] Deploy hats with eligibility module chaining
+- [ ] Chain staking eligibility module and AVS eligibility module (bonus)
+- [ ] Hat minter should ensure minting prompts if funds are staked
+- [ ] Create hat should make a hat with the prompt, plus params
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
 
 ## Overview
+
 The AVS consists of Solidity contracts that communicate with WAVS and Hats Protocol as well as off-chain Rust components compiled to WASM that implement the actual eligibility and toggle checking logic.
 
 Solidity Contracts in `src`:
+
 1. **HatsEligibilityServiceHandler**: Implements `IHatsEligibility` to check if an address is eligible to wear a hat using WAVS.
 2. **HatsToggleServiceHandler**: Implements `IHatsToggle` to determine if a hat should be active or inactive using WAVS.
 3. **HatsAVSHatter**: Creates new hats based on off-chain verification using WAVS.
 4. **HatsAVSMinter**: Mints new hats to users based on off-chain verification using WAVS.
 
 WASI components in `components`:
+
 1. **hats-eligibility**: updates eligibity for a particular hat.
 2. **hats-toggle**: toggles active status for a particular hat.
 3. **hats-minter**: mints a new hat to a target address.
@@ -30,7 +41,6 @@ WASI components in `components`:
 2. WAVS operators detect the event trigger and run the corresponding service component off-chain.
 3. The off-chain component performs the application logic and returns a result.
 4. WAVS operators sign the result and submit it back on-chain to the correct service handler contract (a hatter, eligibility module, toggle module, or minter).
-
 
 ## Setup and Deployment
 
@@ -100,6 +110,7 @@ HATS_AVS_MANAGER=0x...
 ```
 
 Load these new environment variables with:
+
 ```bash
 source .env
 ```
@@ -147,6 +158,7 @@ forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
 ```
 
 Parameters for CheckHatsAVSResults.s.sol:
+
 - First parameter (uint8): Mode (0=all, 1=eligibility only, 2=toggle only)
 - Second parameter (address): Wearer address to check eligibility for
 - Third parameter (uint256): Hat ID to check eligibility for
@@ -165,6 +177,7 @@ forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broa
 ```
 
 Check the eligibility results:
+
 ```bash
 forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
 ```
@@ -182,6 +195,7 @@ forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast
 ```
 
 Check the toggle results:
+
 ```bash
 forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
 ```
@@ -199,6 +213,7 @@ forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast
 ```
 
 Check the minting results:
+
 ```bash
 forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
 ```
@@ -216,6 +231,7 @@ forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhos
 ```
 
 Check the hat creation results:
+
 ```bash
 forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545
 
@@ -224,9 +240,9 @@ forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545 --
 ```
 
 The hat creation process involves:
+
 1. The script checks if you're wearing the admin hat, and if not, creates a top hat that you can use as admin
 2. It then requests hat creation through the HatsAVSHatter contract
 3. WAVS operators detect the request and process it off-chain
 4. The result is then submitted back on-chain
 5. You can check if the hat was created successfully using the CheckCreatorResults script
-

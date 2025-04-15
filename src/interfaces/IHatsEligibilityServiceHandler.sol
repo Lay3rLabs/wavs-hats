@@ -60,6 +60,7 @@ interface IHatsEligibilityServiceHandler is
         bool standing
     );
 
+    // TODO kill
     /**
      * @notice Request an eligibility check for a wearer and hat ID
      * @param _wearer The address of the wearer
@@ -71,6 +72,7 @@ interface IHatsEligibilityServiceHandler is
         uint256 _hatId
     ) external returns (TriggerId triggerId);
 
+    // TODO kill
     /**
      * @notice Check the latest eligibility result for a wearer and hat ID
      * @param _wearer The address of the wearer
