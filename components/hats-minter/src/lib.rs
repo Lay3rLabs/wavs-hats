@@ -8,26 +8,7 @@ use bindings::{
 };
 use wavs_wasi_chain::{decode_event_log_data, ethereum::alloy_primitives::Uint};
 
-sol! {
-    type TriggerId is uint64;
-
-    #[derive(Debug)]
-    event MintingTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        uint256 hatId,
-        address wearer
-    );
-
-    #[derive(Debug)]
-    struct HatMintingData {
-        uint256 hatId;
-        address wearer;
-        address requestor;
-        bool success;
-        string reason;
-    }
-}
+sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 struct Component;
 
@@ -36,7 +17,7 @@ impl Guest for Component {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
                 // Decode the MintingTrigger event
-                let MintingTrigger { triggerId, creator, hatId, wearer } =
+                let IHatsAvsTypes::MintingTrigger { triggerId, creator, hatId, wearer } =
                     decode_event_log_data!(log)
                         .map_err(|e| format!("Failed to decode event log data: {}", e))?;
 
@@ -56,7 +37,7 @@ impl Guest for Component {
                 };
 
                 // Create HatMintingData with the extracted data
-                let result = HatMintingData {
+                let result = IHatsAvsTypes::HatMintingData {
                     hatId: formatted_hat_id,
                     wearer,
                     requestor: creator,

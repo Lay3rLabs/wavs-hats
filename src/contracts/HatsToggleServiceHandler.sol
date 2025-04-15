@@ -35,32 +35,6 @@ contract HatsToggleServiceHandler is HatsToggleModule, IHatsAvsTypes {
     address private immutable _serviceManagerAddr;
 
     /**
-     * @notice Emitted when a new status check is requested
-     * @param triggerId The ID of the trigger
-     * @param hatId The ID of the hat
-     */
-    event StatusCheckRequested(uint64 indexed triggerId, uint256 indexed hatId);
-
-    /**
-     * @notice Emitted when a status check result is received
-     * @param triggerId The ID of the trigger
-     * @param active Whether the hat is active
-     */
-    event StatusResultReceived(uint64 indexed triggerId, bool active);
-
-    /**
-     * @notice Emitted when a new status check trigger is created
-     * @param triggerId The ID of the trigger
-     * @param creator The address that created the trigger
-     * @param hatId The ID of the hat to check status for
-     */
-    event StatusCheckTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        uint256 hatId
-    );
-
-    /**
      * @notice Initialize the module implementation
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
@@ -118,7 +92,7 @@ contract HatsToggleServiceHandler is HatsToggleModule, IHatsAvsTypes {
         lastStatusChecks[_hatId] = block.timestamp;
 
         // Emit the original event for backward compatibility
-        emit StatusCheckRequested(TriggerId.unwrap(triggerId), _hatId);
+        emit StatusCheckRequested(triggerId, _hatId);
 
         // Emit the new structured event for WAVS
         emit StatusCheckTrigger(
@@ -162,10 +136,7 @@ contract HatsToggleServiceHandler is HatsToggleModule, IHatsAvsTypes {
         _lastUpdateTimestamps[hatId] = block.timestamp;
 
         // Emit the event with unwrapped triggerId
-        emit StatusResultReceived(
-            TriggerId.unwrap(result.triggerId),
-            result.active
-        );
+        emit StatusResultReceived(result.triggerId, result.active);
     }
 
     /**

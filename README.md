@@ -4,7 +4,8 @@ This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-pr
 
 TODO:
 
-- [ ] Consolidate all service types into IHatsAvsTypes.sol
+- [x] Consolidate all service types into IHatsAvsTypes.sol
+- [ ] Update components to use new IHatsAvsTypes.sol
 - [ ] Rename contracts to be nicer
 - [ ] Remove unneeded trigger logic code
 - [ ] Make agent support both openai and llama (struggling with environment variable testing)

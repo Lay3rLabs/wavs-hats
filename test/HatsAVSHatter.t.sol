@@ -13,12 +13,12 @@ import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
  * in isolation by using the functions directly on a "boundless" mock contract
  */
 contract BoundlessHatsAVSHatter {
-    HatsAVSHatter.HatCreationData internal hatRequest;
+    IHatsAvsTypes.HatCreationData internal hatRequest;
     IHatsAvsTypes.TriggerId public nextTriggerId;
 
     function setHatRequest(
         IHatsAvsTypes.TriggerId triggerId,
-        HatsAVSHatter.HatCreationData memory request
+        IHatsAvsTypes.HatCreationData memory request
     ) external {
         // This mocks the internal _hatRequests mapping
         hatRequest = request;
@@ -26,7 +26,7 @@ contract BoundlessHatsAVSHatter {
 
     function getHatRequest(
         IHatsAvsTypes.TriggerId
-    ) external view returns (HatsAVSHatter.HatCreationData memory) {
+    ) external view returns (IHatsAvsTypes.HatCreationData memory) {
         return hatRequest;
     }
 
@@ -75,7 +75,7 @@ contract HatsAVSHatterTest is Test {
             .incrementNextTriggerId();
 
         // 3. Store hat creation request (simulate)
-        HatsAVSHatter.HatCreationData memory request = HatsAVSHatter
+        IHatsAvsTypes.HatCreationData memory request = IHatsAvsTypes
             .HatCreationData({
                 admin: adminHatId,
                 details: "Test Hat",
@@ -95,7 +95,7 @@ contract HatsAVSHatterTest is Test {
         assertEq(IHatsAvsTypes.TriggerId.unwrap(triggerId), 1);
 
         // Verify request was stored correctly
-        HatsAVSHatter.HatCreationData memory storedRequest = boundlessHatter
+        IHatsAvsTypes.HatCreationData memory storedRequest = boundlessHatter
             .getHatRequest(triggerId);
         assertEq(storedRequest.admin, adminHatId);
         assertEq(storedRequest.requestor, admin);

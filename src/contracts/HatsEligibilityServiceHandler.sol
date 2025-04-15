@@ -38,20 +38,6 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, IHatsAvsTypes {
     address private immutable _serviceManagerAddr;
 
     /**
-     * @notice Emitted when a new eligibility check trigger is created
-     * @param triggerId The ID of the trigger
-     * @param creator The address that created the trigger
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     */
-    event EligibilityCheckTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        address wearer,
-        uint256 hatId
-    );
-
-    /**
      * @notice Initialize the module implementation
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address

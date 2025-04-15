@@ -19,14 +19,10 @@ use wstd::runtime::block_on;
 // Use the sol! macro to import needed solidity types
 // You can write solidity code in the macro and it will be available in the component
 // Or you can import the types from a solidity file.
-sol!("../../src/interfaces/ITypes.sol");
-sol! {
-    #[derive(Debug)]
-    event NewTrigger(bytes _triggerInfo);
-}
+sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 use crate::llm::{LLMClient, Message};
-use crate::ITypes::DataWithId;
+use crate::IHatsAvsTypes::{DataWithId, NewTrigger};
 
 #[derive(Default)]
 pub struct Component;
