@@ -7,10 +7,10 @@ import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
 import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 
 /**
- * @title HatsAVSMinter
+ * @title HatsAvsMinter
  * @notice A WAVS service handler that can mint hats to addresses based on signed data
  */
-contract HatsAVSMinter is HatsModule, IHatsAvsTypes {
+contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
@@ -84,9 +84,6 @@ contract HatsAVSMinter is HatsModule, IHatsAvsTypes {
             success: false,
             reason: ""
         });
-
-        // Emit the original event for backward compatibility
-        emit HatMintingRequested(triggerId, _hatId, _wearer, msg.sender);
 
         // Emit the new structured event for WAVS
         emit MintingTrigger(

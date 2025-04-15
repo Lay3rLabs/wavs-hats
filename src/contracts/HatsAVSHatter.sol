@@ -7,10 +7,10 @@ import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
 import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 
 /**
- * @title HatsAVSHatter
+ * @title HatsAvsHatter
  * @notice A WAVS service handler that can create hats based on signed data
  */
-contract HatsAVSHatter is HatsModule, IHatsAvsTypes {
+contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
@@ -36,17 +36,17 @@ contract HatsAVSHatter is HatsModule, IHatsAvsTypes {
         _serviceManagerAddr = _serviceManager;
     }
 
-    /**
-     * @notice Initialize the module instance with config
-     * @param _initData The initialization data
-     * @dev This is called by the factory during deployment
-     */
-    function _setUp(bytes calldata _initData) internal override {
-        // If there's initialization data, decode it
-        if (_initData.length > 0) {
-            // Leave this for potential future use
-        }
-    }
+    // /**
+    //  * @notice Initialize the module instance with config
+    //  * @param _initData The initialization data
+    //  * @dev This is called by the factory during deployment
+    //  */
+    // function _setUp(bytes calldata _initData) internal override {
+    //     // If there's initialization data, decode it
+    //     if (_initData.length > 0) {
+    //         // Leave this for potential future use
+    //     }
+    // }
 
     /**
      * @notice Request a hat creation
@@ -85,6 +85,7 @@ contract HatsAVSHatter is HatsModule, IHatsAvsTypes {
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
 
+        // TODO: don't store the request here, just emit the event
         // Store hat creation request
         _hatRequests[triggerId] = HatCreationData({
             admin: _admin,
@@ -135,6 +136,7 @@ contract HatsAVSHatter is HatsModule, IHatsAvsTypes {
             (HatCreationData)
         );
 
+        // TODO: remove this
         // // If this is a response to an existing request
         // if (
         //     TriggerId.unwrap(nextTriggerId) > 0 &&

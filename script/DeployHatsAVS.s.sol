@@ -12,10 +12,10 @@ import {Hats} from "hats-protocol/Hats.sol";
 import {Utils} from "./Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
-import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
-import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
-import {HatsAVSMinter} from "../src/contracts/HatsAVSMinter.sol";
+import {HatsAvsEligibilityModule} from "../src/contracts/HatsAvsEligibilityModule.sol";
+import {HatsAvsToggleModule} from "../src/contracts/HatsAvsToggleModule.sol";
+import {HatsAvsHatter} from "../src/contracts/HatsAvsHatter.sol";
+import {HatsAvsMinter} from "../src/contracts/HatsAvsMinter.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 
 /**
@@ -135,48 +135,48 @@ contract DeployHatsAVS is Script {
         vm.startBroadcast(_privateKey);
 
         // Deploy the eligibility service handler implementation
-        HatsEligibilityServiceHandler eligibilityImpl = new HatsEligibilityServiceHandler(
-                hats,
-                _serviceManagerAddr,
-                VERSION,
-                DEFAULT_ELIGIBILITY_CHECK_COOLDOWN
-            );
+        HatsAvsEligibilityModule eligibilityImpl = new HatsAvsEligibilityModule(
+            hats,
+            _serviceManagerAddr,
+            VERSION,
+            DEFAULT_ELIGIBILITY_CHECK_COOLDOWN
+        );
         console.log(
-            "HatsEligibilityServiceHandler implementation deployed at: %s",
+            "HatsAvsEligibilityModule implementation deployed at: %s",
             address(eligibilityImpl)
         );
 
         // Deploy the toggle service handler implementation
-        HatsToggleServiceHandler toggleImpl = new HatsToggleServiceHandler(
+        HatsAvsToggleModule toggleImpl = new HatsAvsToggleModule(
             hats,
             _serviceManagerAddr,
             VERSION,
             DEFAULT_STATUS_CHECK_COOLDOWN
         );
         console.log(
-            "HatsToggleServiceHandler implementation deployed at: %s",
+            "HatsAvsToggleModule implementation deployed at: %s",
             address(toggleImpl)
         );
 
         // Deploy the hatter implementation
-        HatsAVSHatter hatterImpl = new HatsAVSHatter(
+        HatsAvsHatter hatterImpl = new HatsAvsHatter(
             hats,
             _serviceManagerAddr,
             VERSION
         );
         console.log(
-            "HatsAVSHatter implementation deployed at: %s",
+            "HatsAvsHatter implementation deployed at: %s",
             address(hatterImpl)
         );
 
         // Deploy the minter implementation
-        HatsAVSMinter minterImpl = new HatsAVSMinter(
+        HatsAvsMinter minterImpl = new HatsAvsMinter(
             hats,
             _serviceManagerAddr,
             VERSION
         );
         console.log(
-            "HatsAVSMinter implementation deployed at: %s",
+            "HatsAvsMinter implementation deployed at: %s",
             address(minterImpl)
         );
 
@@ -215,25 +215,25 @@ contract DeployHatsAVS is Script {
         address eligibilityHandler = _createModuleInstance(
             moduleFactory,
             _implAddrs.eligibilityImplAddr,
-            "HatsEligibilityServiceHandler"
+            "HatsAvsEligibilityModule"
         );
 
         address toggleHandler = _createModuleInstance(
             moduleFactory,
             _implAddrs.toggleImplAddr,
-            "HatsToggleServiceHandler"
+            "HatsAvsToggleModule"
         );
 
         address hatter = _createModuleInstance(
             moduleFactory,
             _implAddrs.hatterImplAddr,
-            "HatsAVSHatter"
+            "HatsAvsHatter"
         );
 
         address minter = _createModuleInstance(
             moduleFactory,
             _implAddrs.minterImplAddr,
-            "HatsAVSMinter"
+            "HatsAvsMinter"
         );
 
         // Stop broadcasting

@@ -8,10 +8,10 @@ import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
- * @title HatsEligibilityServiceHandler
+ * @title HatsAvsEligibilityModule
  * @notice A WAVS service handler that implements a Hats eligibility module
  */
-contract HatsEligibilityServiceHandler is HatsEligibilityModule, IHatsAvsTypes {
+contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
@@ -101,9 +101,6 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, IHatsAvsTypes {
 
         // Update the last check timestamp
         lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
-
-        // Emit the original event for backward compatibility
-        emit EligibilityCheckRequested(triggerId, _wearer, _hatId);
 
         // Emit the new structured event for WAVS
         emit EligibilityCheckTrigger(

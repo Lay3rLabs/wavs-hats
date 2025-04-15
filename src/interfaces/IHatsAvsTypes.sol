@@ -6,6 +6,7 @@ pragma solidity 0.8.22;
  * @notice Shared types and events for Hats AVS contracts
  */
 interface IHatsAvsTypes {
+    /// TODO maybe deprecate because it's annoying
     /// @notice TriggerId is a unique identifier for a trigger
     type TriggerId is uint64;
 
@@ -160,18 +161,6 @@ interface IHatsAvsTypes {
     }
 
     /**
-     * @notice Emitted when a new eligibility check is requested
-     * @param triggerId The ID of the trigger
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     */
-    event EligibilityCheckRequested(
-        TriggerId indexed triggerId,
-        address indexed wearer,
-        uint256 indexed hatId
-    );
-
-    /**
      * @notice Emitted when an eligibility check result is received
      * @param triggerId The ID of the trigger
      * @param eligible Whether the wearer is eligible to wear the hat
@@ -181,18 +170,6 @@ interface IHatsAvsTypes {
         TriggerId indexed triggerId,
         bool eligible,
         bool standing
-    );
-
-    /**
-     * @notice Emitted when a new hat creation is requested
-     * @param triggerId The ID of the trigger
-     * @param admin The admin hat ID
-     * @param requestor The address that requested the hat creation
-     */
-    event HatCreationRequested(
-        TriggerId indexed triggerId,
-        uint256 indexed admin,
-        address indexed requestor
     );
 
     /**
@@ -229,20 +206,6 @@ interface IHatsAvsTypes {
         address toggle,
         bool mutable_,
         string imageURI
-    );
-
-    /**
-     * @notice Emitted when a hat minting is requested
-     * @param triggerId The ID of the trigger
-     * @param hatId The hat ID to mint
-     * @param wearer The address that will wear the hat
-     * @param requestor The address that requested the minting
-     */
-    event HatMintingRequested(
-        TriggerId indexed triggerId,
-        uint256 indexed hatId,
-        address indexed wearer,
-        address requestor
     );
 
     /**

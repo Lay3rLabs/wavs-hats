@@ -3,8 +3,8 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
-import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
+import {HatsAvsEligibilityModule} from "../src/contracts/HatsAvsEligibilityModule.sol";
+import {HatsAvsToggleModule} from "../src/contracts/HatsAvsToggleModule.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
@@ -54,10 +54,10 @@ contract SimplifiedTest is Script {
         console.log("Test hat ID:", _hatId);
 
         // Create contract instances
-        HatsEligibilityServiceHandler eligibilityHandler = HatsEligibilityServiceHandler(
-                eligibilityHandlerAddr
-            );
-        HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
+        HatsAvsEligibilityModule eligibilityHandler = HatsAvsEligibilityModule(
+            eligibilityHandlerAddr
+        );
+        HatsAvsToggleModule toggleHandler = HatsAvsToggleModule(
             toggleHandlerAddr
         );
 
@@ -112,7 +112,7 @@ contract SimplifiedTest is Script {
      * @param _hatId The hat ID to use
      */
     function _testEligibility(
-        HatsEligibilityServiceHandler _handler,
+        HatsAvsEligibilityModule _handler,
         address _account,
         uint256 _hatId
     ) internal {
@@ -137,7 +137,7 @@ contract SimplifiedTest is Script {
      * @param _hatId The hat ID to use
      */
     function _testToggle(
-        HatsToggleServiceHandler _handler,
+        HatsAvsToggleModule _handler,
         uint256 _hatId
     ) internal {
         console.log("\n2. Testing status check");

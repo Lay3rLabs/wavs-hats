@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
+import {HatsAvsToggleModule} from "../src/contracts/HatsAvsToggleModule.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
@@ -36,7 +36,7 @@ contract ToggleTest is Script {
         console.log("Test hat ID:", _hatId);
 
         // Create contract instance
-        HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
+        HatsAvsToggleModule toggleHandler = HatsAvsToggleModule(
             toggleHandlerAddr
         );
 
@@ -70,7 +70,7 @@ contract ToggleTest is Script {
      * @param _hatId The hat ID to use
      */
     function _testToggle(
-        HatsToggleServiceHandler _handler,
+        HatsAvsToggleModule _handler,
         uint256 _hatId
     ) internal {
         console.log("\nTesting status check");

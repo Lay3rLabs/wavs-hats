@@ -5,7 +5,7 @@ This project integrates [Hats Protocol](https://github.com/Hats-Protocol/hats-pr
 TODO:
 
 - [x] Consolidate all service types into IHatsAvsTypes.sol
-- [ ] Update components to use new IHatsAvsTypes.sol
+- [x] Update components to use new IHatsAvsTypes.sol
 - [ ] Rename contracts to be nicer
 - [ ] Remove unneeded trigger logic code
 - [ ] Make agent support both openai and llama (struggling with environment variable testing)
@@ -24,10 +24,10 @@ The AVS consists of Solidity contracts that communicate with WAVS and Hats Proto
 
 Solidity Contracts in `src`:
 
-1. **HatsEligibilityServiceHandler**: Implements `IHatsEligibility` to check if an address is eligible to wear a hat using WAVS.
-2. **HatsToggleServiceHandler**: Implements `IHatsToggle` to determine if a hat should be active or inactive using WAVS.
-3. **HatsAVSHatter**: Creates new hats based on off-chain verification using WAVS.
-4. **HatsAVSMinter**: Mints new hats to users based on off-chain verification using WAVS.
+1. **HatsAvsEligibilityModule**: Implements `IHatsEligibility` to check if an address is eligible to wear a hat using WAVS.
+2. **HatsAvsToggleModule**: Implements `IHatsToggle` to determine if a hat should be active or inactive using WAVS.
+3. **HatsAvsHatter**: Creates new hats based on off-chain verification using WAVS.
+4. **HatsAvsMinter**: Mints new hats to users based on off-chain verification using WAVS.
 
 WASI components in `components`:
 
@@ -243,7 +243,7 @@ forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545 --
 The hat creation process involves:
 
 1. The script checks if you're wearing the admin hat, and if not, creates a top hat that you can use as admin
-2. It then requests hat creation through the HatsAVSHatter contract
+2. It then requests hat creation through the HatsAvsHatter contract
 3. WAVS operators detect the request and process it off-chain
 4. The result is then submitted back on-chain
 5. You can check if the hat was created successfully using the CheckCreatorResults script

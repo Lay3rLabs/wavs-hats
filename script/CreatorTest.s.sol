@@ -3,14 +3,14 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
+import {HatsAvsHatter} from "../src/contracts/HatsAvsHatter.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 
 /**
  * @title CreatorTest
- * @notice Simplified script to test the HatsAVSHatter contract
+ * @notice Simplified script to test the HatsAvsHatter contract
  */
 contract CreatorTest is Script {
     // Define constants
@@ -34,7 +34,7 @@ contract CreatorTest is Script {
 
         // Get contract instances
         IHats hats = IHats(hatsAddr);
-        HatsAVSHatter hatter = HatsAVSHatter(hatterAddr);
+        HatsAvsHatter hatter = HatsAvsHatter(hatterAddr);
 
         // Create a new top hat
         console.log("Creating a new top hat...");
@@ -49,21 +49,21 @@ contract CreatorTest is Script {
         bool deployerHasTopHat = hats.isWearerOfHat(deployer, topHatId);
         console.log("Deployer is wearing top hat?", deployerHasTopHat);
 
-        // DEBUG: Check if HatsAVSHatter is authorized as an admin
+        // DEBUG: Check if HatsAvsHatter is authorized as an admin
         bool hatterIsAdmin;
         try hats.isAdminOfHat(hatterAddr, topHatId) returns (bool result) {
             hatterIsAdmin = result;
         } catch {
             hatterIsAdmin = false;
         }
-        console.log("HatsAVSHatter is admin of top hat?", hatterIsAdmin);
+        console.log("HatsAvsHatter is admin of top hat?", hatterIsAdmin);
 
         // Give admin rights to hatter if needed
         if (!hatterIsAdmin) {
-            console.log("Attempting to transfer top hat to HatsAVSHatter...");
+            console.log("Attempting to transfer top hat to HatsAvsHatter...");
             try hats.transferHat(topHatId, deployer, hatterAddr) {
                 console.log(
-                    "Successfully transferred top hat to HatsAVSHatter"
+                    "Successfully transferred top hat to HatsAvsHatter"
                 );
             } catch Error(string memory reason) {
                 console.log("Transfer failed:", reason);

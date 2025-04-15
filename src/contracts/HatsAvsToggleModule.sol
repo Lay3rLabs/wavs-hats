@@ -8,10 +8,10 @@ import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
- * @title HatsToggleServiceHandler
+ * @title HatsAvsToggleModule
  * @notice A WAVS service handler that implements a Hats toggle module
  */
-contract HatsToggleServiceHandler is HatsToggleModule, IHatsAvsTypes {
+contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 

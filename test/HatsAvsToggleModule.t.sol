@@ -2,7 +2,7 @@
 pragma solidity 0.8.22;
 
 import "forge-std/Test.sol";
-import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
+import {HatsAvsToggleModule} from "../src/contracts/HatsAvsToggleModule.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
@@ -62,7 +62,7 @@ contract BoundlessToggleHandler {
     }
 }
 
-contract HatsToggleServiceHandlerTest is Test {
+contract HatsAvsToggleModuleTest is Test {
     // Mock dependencies
     IHats mockHats;
     MockWavsServiceManager serviceManager;

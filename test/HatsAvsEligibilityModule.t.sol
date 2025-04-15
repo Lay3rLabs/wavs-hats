@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
+import {HatsAvsEligibilityModule} from "../src/contracts/HatsAvsEligibilityModule.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
@@ -70,7 +70,7 @@ contract BoundlessEligibilityHandler {
     }
 }
 
-contract HatsEligibilityServiceHandlerTest is Test {
+contract HatsAvsEligibilityModuleTest is Test {
     // Mock dependencies
     IHats mockHats;
     MockWavsServiceManager serviceManager;

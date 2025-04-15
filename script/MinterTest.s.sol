@@ -3,14 +3,14 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSMinter} from "../src/contracts/HatsAVSMinter.sol";
+import {HatsAvsMinter} from "../src/contracts/HatsAvsMinter.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 
 /**
  * @title MinterTest
- * @notice Script to test the HatsAVSMinter contract
+ * @notice Script to test the HatsAvsMinter contract
  */
 contract MinterTest is Script {
     // Define constants
@@ -46,7 +46,7 @@ contract MinterTest is Script {
         console.log("Test hat ID (formatted):", _hatId);
 
         // Create contract instances
-        HatsAVSMinter minter = HatsAVSMinter(minterAddr);
+        HatsAvsMinter minter = HatsAvsMinter(minterAddr);
         IHats hats = IHats(hatsAddr);
 
         (uint256 privateKey, address deployer) = Utils.getPrivateKey(vm);

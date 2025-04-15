@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
+import {HatsAvsHatter} from "../src/contracts/HatsAvsHatter.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
@@ -12,7 +12,7 @@ import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
  * @dev Instead of initializing the contract, we'll test its functions
  * in isolation by using the functions directly on a "boundless" mock contract
  */
-contract BoundlessHatsAVSHatter {
+contract BoundlessHatsAvsHatter {
     IHatsAvsTypes.HatCreationData internal hatRequest;
     IHatsAvsTypes.TriggerId public nextTriggerId;
 
@@ -41,14 +41,14 @@ contract BoundlessHatsAVSHatter {
     }
 }
 
-contract HatsAVSHatterTest is Test {
+contract HatsAvsHatterTest is Test {
     // Instead of initializing the actual contract, we'll test its logic
     // by directly calling the functionality we want to test
 
     // Mock dependencies
     IHats mockHats;
     MockWavsServiceManager serviceManager;
-    BoundlessHatsAVSHatter boundlessHatter;
+    BoundlessHatsAvsHatter boundlessHatter;
 
     // Test addresses
     address public admin = address(0x2);
@@ -61,7 +61,7 @@ contract HatsAVSHatterTest is Test {
         // Create mock dependencies
         mockHats = IHats(address(new MockHats()));
         serviceManager = new MockWavsServiceManager();
-        boundlessHatter = new BoundlessHatsAVSHatter();
+        boundlessHatter = new BoundlessHatsAvsHatter();
 
         // Set up mock responses
         MockHats(address(mockHats)).setIsWearerOfHat(admin, adminHatId, true);
