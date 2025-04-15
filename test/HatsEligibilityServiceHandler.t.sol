@@ -1,42 +1,46 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
 
 /**
  * @dev Mock contract that simulates the functionality without initialization issues
  */
 contract BoundlessEligibilityHandler {
-    ITypes.TriggerId public nextTriggerId;
+    IHatsAvsTypes.TriggerId public nextTriggerId;
 
     // Mock storage for trigger data
-    mapping(address => mapping(uint256 => HatsEligibilityServiceHandler.EligibilityResult))
+    mapping(address => mapping(uint256 => IHatsAvsTypes.EligibilityResult))
         public eligibilityResults;
 
     // Mock storage for trigger timestamps
     mapping(address => mapping(uint256 => uint256)) public lastUpdateTimestamps;
 
     // Mock storage for trigger data
-    mapping(ITypes.TriggerId => TriggerData) public triggerData;
+    mapping(IHatsAvsTypes.TriggerId => TriggerData) public triggerData;
 
     struct TriggerData {
         address wearer;
         uint256 hatId;
     }
 
-    function incrementNextTriggerId() external returns (ITypes.TriggerId) {
-        nextTriggerId = ITypes.TriggerId.wrap(
-            ITypes.TriggerId.unwrap(nextTriggerId) + 1
+    function incrementNextTriggerId()
+        external
+        returns (IHatsAvsTypes.TriggerId)
+    {
+        nextTriggerId = IHatsAvsTypes.TriggerId.wrap(
+            IHatsAvsTypes.TriggerId.unwrap(nextTriggerId) + 1
         );
         return nextTriggerId;
     }
 
     function storeTriggerData(
-        ITypes.TriggerId _triggerId,
+        IHatsAvsTypes.TriggerId _triggerId,
         address _wearer,
         uint256 _hatId
     ) external {
@@ -46,7 +50,7 @@ contract BoundlessEligibilityHandler {
     function setEligibilityResult(
         address _wearer,
         uint256 _hatId,
-        HatsEligibilityServiceHandler.EligibilityResult memory _result,
+        IHatsAvsTypes.EligibilityResult memory _result,
         uint256 _timestamp
     ) external {
         eligibilityResults[_wearer][_hatId] = _result;
@@ -57,8 +61,9 @@ contract BoundlessEligibilityHandler {
         address _wearer,
         uint256 _hatId
     ) external view returns (bool, bool, uint256) {
-        HatsEligibilityServiceHandler.EligibilityResult
-            memory result = eligibilityResults[_wearer][_hatId];
+        IHatsAvsTypes.EligibilityResult memory result = eligibilityResults[
+            _wearer
+        ][_hatId];
         uint256 timestamp = lastUpdateTimestamps[_wearer][_hatId];
 
         return (result.eligible, result.standing, timestamp);
@@ -86,26 +91,31 @@ contract HatsEligibilityServiceHandlerTest is Test {
 
     function test_RequestEligibilityCheck() public {
         // Simulate requestEligibilityCheck logic
-        ITypes.TriggerId triggerId = boundlessHandler.incrementNextTriggerId();
+        IHatsAvsTypes.TriggerId triggerId = boundlessHandler
+            .incrementNextTriggerId();
 
         // Store trigger data
         boundlessHandler.storeTriggerData(triggerId, wearer, hatId);
 
         // Verify triggerId was created
-        assertEq(ITypes.TriggerId.unwrap(triggerId), 1);
+        assertEq(IHatsAvsTypes.TriggerId.unwrap(triggerId), 1);
 
         // Verify next triggerId was updated
-        assertEq(ITypes.TriggerId.unwrap(boundlessHandler.nextTriggerId()), 1);
+        assertEq(
+            IHatsAvsTypes.TriggerId.unwrap(boundlessHandler.nextTriggerId()),
+            1
+        );
     }
 
     function test_HandleSignedData() public {
         // First create a request
-        ITypes.TriggerId triggerId = boundlessHandler.incrementNextTriggerId();
+        IHatsAvsTypes.TriggerId triggerId = boundlessHandler
+            .incrementNextTriggerId();
         boundlessHandler.storeTriggerData(triggerId, wearer, hatId);
 
         // Create eligibility result
-        HatsEligibilityServiceHandler.EligibilityResult
-            memory result = HatsEligibilityServiceHandler.EligibilityResult({
+        IHatsAvsTypes.EligibilityResult memory result = IHatsAvsTypes
+            .EligibilityResult({
                 triggerId: triggerId,
                 eligible: true,
                 standing: true

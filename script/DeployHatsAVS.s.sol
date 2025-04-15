@@ -16,8 +16,7 @@ import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilitySer
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
 import {HatsAVSMinter} from "../src/contracts/HatsAVSMinter.sol";
-import {IHatsEligibilityServiceHandler} from "../src/interfaces/IHatsEligibilityServiceHandler.sol";
-import {IHatsToggleServiceHandler} from "../src/interfaces/IHatsToggleServiceHandler.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 
 /**
  * @title DeployHatsAVS

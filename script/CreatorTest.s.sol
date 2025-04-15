@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 
@@ -84,10 +84,10 @@ contract CreatorTest is Script {
                 DEFAULT_MUTABLE,
                 DEFAULT_IMAGE_URI
             )
-        returns (ITypes.TriggerId triggerId) {
+        returns (IHatsAvsTypes.TriggerId triggerId) {
             console.log(
                 "Hat creation requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(triggerId))
+                uint64(IHatsAvsTypes.TriggerId.unwrap(triggerId))
             );
         } catch Error(string memory reason) {
             console.log("requestHatCreation failed:", reason);

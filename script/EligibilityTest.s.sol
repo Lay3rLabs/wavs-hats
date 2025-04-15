@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -86,11 +86,11 @@ contract EligibilityTest is Script {
     ) internal {
         console.log("\nTesting eligibility check");
         try _handler.requestEligibilityCheck(_account, _hatId) returns (
-            ITypes.TriggerId eligibilityTriggerId
+            IHatsAvsTypes.TriggerId eligibilityTriggerId
         ) {
             console.log(
                 "Eligibility check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(eligibilityTriggerId))
+                uint64(IHatsAvsTypes.TriggerId.unwrap(eligibilityTriggerId))
             );
         } catch Error(string memory reason) {
             console.log("Eligibility check request failed:", reason);

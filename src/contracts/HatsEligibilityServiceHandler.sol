@@ -4,19 +4,20 @@ pragma solidity 0.8.22;
 import {HatsEligibilityModule} from "@hats-module/src/HatsEligibilityModule.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
-import {ITypes} from "../interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
  * @title HatsEligibilityServiceHandler
  * @notice A WAVS service handler that implements a Hats eligibility module
  */
-contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
+contract HatsEligibilityServiceHandler is HatsEligibilityModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
     /// @notice Mapping of trigger IDs to trigger data
-    mapping(TriggerId _triggerId => TriggerData _data) internal _triggerData;
+    mapping(TriggerId _triggerId => EligibilityTriggerData _data)
+        internal _triggerData;
 
     /// @notice Mapping of wearer address and hat ID to the latest result
     mapping(address _wearer => mapping(uint256 _hatId => EligibilityResult _result))
@@ -35,52 +36,6 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
-
-    /**
-     * @notice Struct to store trigger data
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     */
-    struct TriggerData {
-        address wearer;
-        uint256 hatId;
-    }
-
-    /**
-     * @notice Struct to store the result of an eligibility check
-     * @param triggerId Unique identifier for the trigger
-     * @param eligible Whether the wearer is eligible to wear the hat
-     * @param standing Whether the wearer is in good standing
-     */
-    struct EligibilityResult {
-        TriggerId triggerId;
-        bool eligible;
-        bool standing;
-    }
-
-    /**
-     * @notice Emitted when a new eligibility check is requested
-     * @param triggerId The ID of the trigger
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     */
-    event EligibilityCheckRequested(
-        uint64 indexed triggerId,
-        address indexed wearer,
-        uint256 indexed hatId
-    );
-
-    /**
-     * @notice Emitted when an eligibility check result is received
-     * @param triggerId The ID of the trigger
-     * @param eligible Whether the wearer is eligible to wear the hat
-     * @param standing Whether the wearer is in good standing
-     */
-    event EligibilityResultReceived(
-        uint64 indexed triggerId,
-        bool eligible,
-        bool standing
-    );
 
     /**
      * @notice Emitted when a new eligibility check trigger is created
@@ -153,17 +108,16 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         triggerId = nextTriggerId;
 
         // Store trigger data
-        _triggerData[triggerId] = TriggerData({wearer: _wearer, hatId: _hatId});
+        _triggerData[triggerId] = EligibilityTriggerData({
+            wearer: _wearer,
+            hatId: _hatId
+        });
 
         // Update the last check timestamp
         lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
 
         // Emit the original event for backward compatibility
-        emit EligibilityCheckRequested(
-            TriggerId.unwrap(triggerId),
-            _wearer,
-            _hatId
-        );
+        emit EligibilityCheckRequested(triggerId, _wearer, _hatId);
 
         // Emit the new structured event for WAVS
         emit EligibilityCheckTrigger(
@@ -201,7 +155,9 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
         // Get the trigger data
-        TriggerData memory triggerData = _triggerData[result.triggerId];
+        EligibilityTriggerData memory triggerData = _triggerData[
+            result.triggerId
+        ];
 
         // Verify data exists
         require(triggerData.wearer != address(0), "Trigger data not found");
@@ -213,7 +169,7 @@ contract HatsEligibilityServiceHandler is HatsEligibilityModule, ITypes {
 
         // Emit the event with unwrapped triggerId
         emit EligibilityResultReceived(
-            TriggerId.unwrap(result.triggerId),
+            result.triggerId,
             result.eligible,
             result.standing
         );

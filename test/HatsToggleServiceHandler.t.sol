@@ -5,33 +5,35 @@ import "forge-std/Test.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 
 /**
  * @dev Mock contract that simulates the functionality without initialization issues
  */
 contract BoundlessToggleHandler {
-    ITypes.TriggerId public nextTriggerId;
+    IHatsAvsTypes.TriggerId public nextTriggerId;
 
     // Mock storage for status results
-    mapping(uint256 => HatsToggleServiceHandler.StatusResult)
-        public statusResults;
+    mapping(uint256 => IHatsAvsTypes.StatusResult) public statusResults;
 
     // Mock storage for status timestamps
     mapping(uint256 => uint256) public lastUpdateTimestamps;
 
     // Mock storage for hat IDs
-    mapping(ITypes.TriggerId => uint256) public triggerHatIds;
+    mapping(IHatsAvsTypes.TriggerId => uint256) public triggerHatIds;
 
-    function incrementNextTriggerId() external returns (ITypes.TriggerId) {
-        nextTriggerId = ITypes.TriggerId.wrap(
-            ITypes.TriggerId.unwrap(nextTriggerId) + 1
+    function incrementNextTriggerId()
+        external
+        returns (IHatsAvsTypes.TriggerId)
+    {
+        nextTriggerId = IHatsAvsTypes.TriggerId.wrap(
+            IHatsAvsTypes.TriggerId.unwrap(nextTriggerId) + 1
         );
         return nextTriggerId;
     }
 
     function storeTriggerHatId(
-        ITypes.TriggerId _triggerId,
+        IHatsAvsTypes.TriggerId _triggerId,
         uint256 _hatId
     ) external {
         triggerHatIds[_triggerId] = _hatId;
@@ -39,7 +41,7 @@ contract BoundlessToggleHandler {
 
     function setStatusResult(
         uint256 _hatId,
-        HatsToggleServiceHandler.StatusResult memory _result,
+        IHatsAvsTypes.StatusResult memory _result,
         uint256 _timestamp
     ) external {
         statusResults[_hatId] = _result;
@@ -49,9 +51,7 @@ contract BoundlessToggleHandler {
     function getStatusResult(
         uint256 _hatId
     ) external view returns (bool, uint256) {
-        HatsToggleServiceHandler.StatusResult memory result = statusResults[
-            _hatId
-        ];
+        IHatsAvsTypes.StatusResult memory result = statusResults[_hatId];
         uint256 timestamp = lastUpdateTimestamps[_hatId];
 
         return (result.active, timestamp);
@@ -80,29 +80,33 @@ contract HatsToggleServiceHandlerTest is Test {
 
     function test_RequestStatusCheck() public {
         // Simulate requestStatusCheck logic
-        ITypes.TriggerId triggerId = boundlessHandler.incrementNextTriggerId();
+        IHatsAvsTypes.TriggerId triggerId = boundlessHandler
+            .incrementNextTriggerId();
 
         // Store trigger hat ID
         boundlessHandler.storeTriggerHatId(triggerId, hatId);
 
         // Verify triggerId was created
-        assertEq(ITypes.TriggerId.unwrap(triggerId), 1);
+        assertEq(IHatsAvsTypes.TriggerId.unwrap(triggerId), 1);
 
         // Verify next triggerId was updated
-        assertEq(ITypes.TriggerId.unwrap(boundlessHandler.nextTriggerId()), 1);
+        assertEq(
+            IHatsAvsTypes.TriggerId.unwrap(boundlessHandler.nextTriggerId()),
+            1
+        );
     }
 
     function test_HandleSignedData() public {
         // First create a request
-        ITypes.TriggerId triggerId = boundlessHandler.incrementNextTriggerId();
+        IHatsAvsTypes.TriggerId triggerId = boundlessHandler
+            .incrementNextTriggerId();
         boundlessHandler.storeTriggerHatId(triggerId, hatId);
 
         // Create status result
-        HatsToggleServiceHandler.StatusResult
-            memory result = HatsToggleServiceHandler.StatusResult({
-                triggerId: triggerId,
-                active: true
-            });
+        IHatsAvsTypes.StatusResult memory result = IHatsAvsTypes.StatusResult({
+            triggerId: triggerId,
+            active: true
+        });
 
         // Simulate handleSignedData by updating the result directly
         boundlessHandler.setStatusResult(hatId, result, block.timestamp);

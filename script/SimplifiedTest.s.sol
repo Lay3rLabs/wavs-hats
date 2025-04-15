@@ -5,7 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -118,11 +118,11 @@ contract SimplifiedTest is Script {
     ) internal {
         console.log("\n1. Testing eligibility check");
         try _handler.requestEligibilityCheck(_account, _hatId) returns (
-            ITypes.TriggerId eligibilityTriggerId
+            IHatsAvsTypes.TriggerId eligibilityTriggerId
         ) {
             console.log(
                 "Eligibility check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(eligibilityTriggerId))
+                uint64(IHatsAvsTypes.TriggerId.unwrap(eligibilityTriggerId))
             );
         } catch Error(string memory reason) {
             console.log("Eligibility check request failed:", reason);
@@ -142,11 +142,11 @@ contract SimplifiedTest is Script {
     ) internal {
         console.log("\n2. Testing status check");
         try _handler.requestStatusCheck(_hatId) returns (
-            ITypes.TriggerId statusTriggerId
+            IHatsAvsTypes.TriggerId statusTriggerId
         ) {
             console.log(
                 "Status check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(statusTriggerId))
+                uint64(IHatsAvsTypes.TriggerId.unwrap(statusTriggerId))
             );
         } catch Error(string memory reason) {
             console.log("Status check request failed:", reason);

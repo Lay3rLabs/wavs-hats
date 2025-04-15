@@ -4,14 +4,14 @@ pragma solidity 0.8.22;
 import {HatsToggleModule} from "@hats-module/src/HatsToggleModule.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
-import {ITypes} from "../interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 import {HatsModule} from "@hats-module/src/HatsModule.sol";
 
 /**
  * @title HatsToggleServiceHandler
  * @notice A WAVS service handler that implements a Hats toggle module
  */
-contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
+contract HatsToggleServiceHandler is HatsToggleModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
@@ -33,16 +33,6 @@ contract HatsToggleServiceHandler is HatsToggleModule, ITypes {
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
-
-    /**
-     * @notice Struct to store the result of a status check
-     * @param triggerId Unique identifier for the trigger
-     * @param active Whether the hat is active
-     */
-    struct StatusResult {
-        TriggerId triggerId;
-        bool active;
-    }
 
     /**
      * @notice Emitted when a new status check is requested

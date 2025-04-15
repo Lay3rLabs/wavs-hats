@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
 import {HatsAVSHatter} from "../src/contracts/HatsAVSHatter.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {MockWavsServiceManager} from "../src/mocks/MockWavsServiceManager.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
 
 /**
  * @dev Instead of initializing the contract, we'll test its functions
@@ -13,10 +14,10 @@ import {ITypes} from "../src/interfaces/ITypes.sol";
  */
 contract BoundlessHatsAVSHatter {
     HatsAVSHatter.HatCreationData internal hatRequest;
-    ITypes.TriggerId public nextTriggerId;
+    IHatsAvsTypes.TriggerId public nextTriggerId;
 
     function setHatRequest(
-        ITypes.TriggerId triggerId,
+        IHatsAvsTypes.TriggerId triggerId,
         HatsAVSHatter.HatCreationData memory request
     ) external {
         // This mocks the internal _hatRequests mapping
@@ -24,14 +25,17 @@ contract BoundlessHatsAVSHatter {
     }
 
     function getHatRequest(
-        ITypes.TriggerId
+        IHatsAvsTypes.TriggerId
     ) external view returns (HatsAVSHatter.HatCreationData memory) {
         return hatRequest;
     }
 
-    function incrementNextTriggerId() external returns (ITypes.TriggerId) {
-        nextTriggerId = ITypes.TriggerId.wrap(
-            ITypes.TriggerId.unwrap(nextTriggerId) + 1
+    function incrementNextTriggerId()
+        external
+        returns (IHatsAvsTypes.TriggerId)
+    {
+        nextTriggerId = IHatsAvsTypes.TriggerId.wrap(
+            IHatsAvsTypes.TriggerId.unwrap(nextTriggerId) + 1
         );
         return nextTriggerId;
     }
@@ -67,7 +71,8 @@ contract HatsAVSHatterTest is Test {
         // Simulate the requestHatCreation logic
         // 1. Check admin status - already set up in mock
         // 2. Create trigger ID
-        ITypes.TriggerId triggerId = boundlessHatter.incrementNextTriggerId();
+        IHatsAvsTypes.TriggerId triggerId = boundlessHatter
+            .incrementNextTriggerId();
 
         // 3. Store hat creation request (simulate)
         HatsAVSHatter.HatCreationData memory request = HatsAVSHatter
@@ -87,7 +92,7 @@ contract HatsAVSHatterTest is Test {
         boundlessHatter.setHatRequest(triggerId, request);
 
         // Verify triggerId was incremented
-        assertEq(ITypes.TriggerId.unwrap(triggerId), 1);
+        assertEq(IHatsAvsTypes.TriggerId.unwrap(triggerId), 1);
 
         // Verify request was stored correctly
         HatsAVSHatter.HatCreationData memory storedRequest = boundlessHatter

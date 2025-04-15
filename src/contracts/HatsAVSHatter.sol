@@ -4,13 +4,13 @@ pragma solidity 0.8.22;
 import {HatsModule} from "@hats-module/src/HatsModule.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
-import {ITypes} from "../interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
 
 /**
  * @title HatsAVSHatter
  * @notice A WAVS service handler that can create hats based on signed data
  */
-contract HatsAVSHatter is HatsModule, ITypes {
+contract HatsAVSHatter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 

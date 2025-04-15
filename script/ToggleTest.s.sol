@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -75,11 +75,11 @@ contract ToggleTest is Script {
     ) internal {
         console.log("\nTesting status check");
         try _handler.requestStatusCheck(_hatId) returns (
-            ITypes.TriggerId statusTriggerId
+            IHatsAvsTypes.TriggerId statusTriggerId
         ) {
             console.log(
                 "Status check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(statusTriggerId))
+                uint64(IHatsAvsTypes.TriggerId.unwrap(statusTriggerId))
             );
         } catch Error(string memory reason) {
             console.log("Status check request failed:", reason);
