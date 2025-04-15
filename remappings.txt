@@ -10,3 +10,4 @@ hats-module/=lib/hats-module
 solady/=lib/hats-module/lib/solady/src
 hats-protocol/=lib/hats-protocol/src
 ds-test/=lib/forge-std/lib/ds-test/src/
+solbase/=lib/hats-zodiac/lib/solady/src/

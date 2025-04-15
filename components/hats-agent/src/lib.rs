@@ -62,7 +62,7 @@ impl Guest for Component {
 
         // Process the prompt using the LLM client
         let result = block_on(async {
-            let client = LLMClient::new("llama3.1")
+            let client = LLMClient::new("gpt-3.5-turbo")
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
             let messages = vec![Message { role: "user".to_string(), content: prompt.to_string() }];
             client.chat_completion(&messages).await

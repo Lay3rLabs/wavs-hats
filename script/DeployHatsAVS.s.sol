@@ -3,6 +3,7 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 import {IWavsServiceManager} from "@wavs/interfaces/IWavsServiceManager.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {HatsModuleFactory} from "@hats-module/src/HatsModuleFactory.sol";
@@ -23,6 +24,8 @@ import {IHatsToggleServiceHandler} from "../src/interfaces/IHatsToggleServiceHan
  * @notice Deployment script for the Hats Protocol WAVS AVS integration
  */
 contract DeployHatsAVS is Script {
+    using stdJson for string;
+
     // Default values for constructor parameters
     uint256 public constant DEFAULT_ELIGIBILITY_CHECK_COOLDOWN = 1 hours;
     uint256 public constant DEFAULT_STATUS_CHECK_COOLDOWN = 4 hours;

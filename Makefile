@@ -40,7 +40,7 @@ wasi-build:
 wasi-exec:
 	@$(WAVS_CMD) exec --log-level=info --data /data/.docker --home /data \
 	--component "/data/compiled/${COMPONENT_FILENAME}" \
-	--input `cast from-utf8 $(PROMPT)`
+	--input `cast from-utf8 $(PROMPT)` --dotenv .env
 
 ## update-submodules: update the git submodules
 update-submodules:
