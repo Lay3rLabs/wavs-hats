@@ -13,7 +13,7 @@ import {Utils} from "./Utils.sol";
  */
 contract CheckCreatorResults is Script {
     // Define constants
-    // Use the same hat ID format as in CreatorTest
+    // Use the same hat ID format as in Create
     uint256 constant TOP_HAT_DOMAIN = 1;
     uint256 constant DEFAULT_ADMIN_HAT_ID = TOP_HAT_DOMAIN << 224;
 

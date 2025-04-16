@@ -19,10 +19,10 @@ import {HatsAvsMinter} from "../src/contracts/HatsAvsMinter.sol";
 import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 
 /**
- * @title DeployHatsAVS
+ * @title Deploy
  * @notice Deployment script for the Hats Protocol WAVS AVS integration
  */
-contract DeployHatsAVS is Script {
+contract Deploy is Script {
     using stdJson for string;
 
     // Default values for constructor parameters

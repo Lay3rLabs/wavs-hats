@@ -8,10 +8,10 @@ import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
- * @title EligibilityTest
+ * @title Eligibility
  * @notice Script to test the Hats Protocol WAVS AVS eligibility integration
  */
-contract EligibilityTest is Script {
+contract Eligibility is Script {
     // Define constants
     address constant DEFAULT_ACCOUNT =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;

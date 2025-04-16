@@ -16,7 +16,7 @@ contract CheckMinterResults is Script {
     address constant DEFAULT_WEARER =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
-    // Use the same hat ID format as in MinterTest
+    // Use the same hat ID format as in Mint
     uint256 constant TOP_HAT_DOMAIN = 1;
     uint256 constant DEFAULT_HAT_ID = TOP_HAT_DOMAIN << 224;
 

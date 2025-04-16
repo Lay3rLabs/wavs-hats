@@ -92,7 +92,7 @@ Now, deploy the contracts:
 
 ```bash
 # Deploy the contracts
-forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost:8545 --broadcast
+forge script script/Deploy.s.sol:Deploy --rpc-url http://localhost:8545 --broadcast
 ```
 
 ### Deploy Service Components
@@ -156,10 +156,10 @@ To test the eligibility service:
 
 ```bash
 # Request an eligibility check (uses default account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 and hat ID 1)
-forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Eligibility.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also specify a custom account and hat ID
-forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
+forge script script/Eligibility.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 ```
 
 Check the eligibility results:
@@ -174,10 +174,10 @@ To test the toggle (hat status) service:
 
 ```bash
 # Request a status check (uses default hat ID 1)
-forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Toggle.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also specify a custom hat ID
-forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint256)" 1
+forge script script/Toggle.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint256)" 1
 ```
 
 Check the toggle results:
@@ -192,10 +192,10 @@ To test the hat minting service:
 
 ```bash
 # Request a hat minting (uses default values)
-forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Mint.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also provide custom parameters
-forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
+forge script script/Mint.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 ```
 
 Check the minting results:
@@ -210,10 +210,10 @@ To test the hat creation service:
 
 ```bash
 # Request a hat creation (uses default values)
-forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast
+forge script script/Create.s.sol --tc Create --rpc-url http://localhost:8545 --broadcast
 
 # You can also provide custom parameters
-forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast --sig "run(uint256,string,uint32,address,address,bool,string)" 281474976710656 "Custom Hat" 50 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 true "ipfs://QmCustomHash"
+forge script script/Create.s.sol --tc Create --rpc-url http://localhost:8545 --broadcast --sig "run(uint256,string,uint32,address,address,bool,string)" 281474976710656 "Custom Hat" 50 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 true "ipfs://QmCustomHash"
 ```
 
 Check the hat creation results:
