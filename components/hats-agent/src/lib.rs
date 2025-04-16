@@ -42,6 +42,8 @@ impl Guest for Component {
                     .map_err(|e| format!("Failed to decode trigger info: {}", e))?
             }
             // Fired from a raw data event (e.g. from a CLI command or from another component).
+            // Note; this is just for testing ATM.
+            // TODO pass in and decode an actual event, so this can be composed with other components
             TriggerData::Raw(data) => {
                 let prompt = std::str::from_utf8(&data)
                     .map_err(|e| format!("Failed to decode prompt from bytes: {}", e))?;
@@ -54,11 +56,11 @@ impl Guest for Component {
         let prompt = std::str::from_utf8(&trigger_info.data)
             .map_err(|e| format!("Failed to decode prompt from bytes: {}", e))?;
 
-        // TODO get system prompt and user prompt from hats nfts tokenURI
+        // TODO get system prompt, model, and user prompt from hats nfts tokenURI
 
         // Process the prompt using the LLM client
         let result = block_on(async {
-            let client = LLMClient::new("llama3.2")
+            let client = LLMClient::new("gpt-4")
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
             let messages = vec![Message { role: "user".to_string(), content: prompt.to_string() }];
             client.chat_completion(&messages).await
@@ -77,18 +79,3 @@ impl Guest for Component {
 }
 
 export!(Component with_types_in bindings);
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use anyhow::Result;
-
-//     // Test helper functions
-//     fn setup_test_component() -> Component {
-//         Component::default()
-//     }
-
-//     // fn create_test_trigger() -> TriggerAction {
-//     //     mock_trigger(b"test data")
-//     // }
-// }

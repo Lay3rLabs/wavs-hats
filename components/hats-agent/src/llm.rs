@@ -69,6 +69,8 @@ impl LLMClient {
             return Err("Model name cannot be empty".to_string());
         }
 
+        eprintln!("model: {}", model);
+
         // Get API key if using OpenAI models
         let api_key = match model {
             "gpt-3.5-turbo" | "gpt-4" => Some(get_required_var("WAVS_ENV_OPENAI_API_KEY")?),

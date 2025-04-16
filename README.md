@@ -8,14 +8,15 @@ TODO:
 - [x] Update components to use new IHatsAvsTypes.sol
 - [x] Rename contracts to be nicer
 - [x] Remove unneeded trigger logic code
-- [ ] Check hats creation still works
-- [ ] Make agent support both openai and llama (struggling with environment variable testing)
+- [x] Make agent support both openai and llama (struggling with environment variable testing)
+- [ ] Refactor script names and consolidate
 - [ ] Make agent support tools
-- [ ] Deploy hats with zodiac
+- [ ] Deploy hats with zodiac + safe
 - [ ] Deploy hats with eligibility module chaining
 - [ ] Chain staking eligibility module and AVS eligibility module (bonus)
 - [ ] Hat minter should ensure minting prompts if funds are staked
 - [ ] Create hat should make a hat with the prompt, plus params
+- [ ] Check hats creation still works
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
 
