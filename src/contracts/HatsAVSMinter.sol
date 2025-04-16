@@ -14,10 +14,6 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
-    /// @notice Mapping of trigger IDs to hat minting requests
-    mapping(TriggerId _triggerId => HatMintingData _request)
-        internal _mintRequests;
-
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
 
@@ -36,16 +32,6 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
     }
 
     /**
-     * @notice Initialize the module instance with config
-     * @param _initData The initialization data
-     */
-    function _setUp(bytes calldata _initData) internal override {
-        if (_initData.length > 0) {
-            // Optional initialization logic
-        }
-    }
-
-    /**
      * @notice Request a hat minting
      * @param _hatId The hat ID to mint
      * @param _wearer The address that will wear the hat
@@ -59,31 +45,9 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
         require(_hatId > 0, "Invalid hat ID");
         require(_wearer != address(0), "Invalid wearer address");
 
-        // TODO remove this. This method is really just for testing.
-        // Get admin of the hat using bitwise operations (first 32 bits of hatId)
-        // According to Hats Protocol, the admin hat ID is the parent hat
-        // uint256 adminHat = _hatId &
-        //    0xFFFFFFFF00000000000000000000000000000000000000000000000000000000;
-
-        // // Validate that caller is admin hat wearer or authorized
-        // require(
-        //     HATS().isWearerOfHat(msg.sender, adminHat),
-        //     "Not authorized to mint"
-        // );
-
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
-
-        // TODO do we need this?
-        // Store hat minting request
-        _mintRequests[triggerId] = HatMintingData({
-            hatId: _hatId,
-            wearer: _wearer,
-            requestor: msg.sender,
-            success: false,
-            reason: ""
-        });
 
         // Emit the new structured event for WAVS
         emit MintingTrigger(
@@ -116,63 +80,6 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
         // Ensure hat ID is valid
         require(mintingData.hatId > 0, "Invalid hat ID");
         require(mintingData.wearer != address(0), "Invalid wearer address");
-
-        // TODO this all seems overly complicated
-        // Check if there have been any requests at all
-        if (TriggerId.unwrap(nextTriggerId) > 0) {
-            // Find the trigger ID if it exists
-            TriggerId foundTriggerId;
-            bool found = false;
-
-            // Only look at recent trigger IDs to avoid excessive gas consumption
-            uint64 maxCheck = 100;
-            uint64 current = TriggerId.unwrap(nextTriggerId);
-            uint64 startCheck = current > maxCheck ? current - maxCheck : 1;
-
-            // TODO KILL, this for loop is so fucked. WTF?
-            for (uint64 i = startCheck; i <= current; i++) {
-                TriggerId tid = TriggerId.wrap(i);
-                HatMintingData storage request = _mintRequests[tid];
-
-                // Match against hatId, wearer and requestor
-                if (
-                    request.hatId == mintingData.hatId &&
-                    request.wearer == mintingData.wearer &&
-                    request.requestor != address(0) // Ensure it's a valid request
-                ) {
-                    foundTriggerId = tid;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (found) {
-                // Get the hat minting request
-                HatMintingData storage request = _mintRequests[foundTriggerId];
-
-                // If success flag is true, mint the hat
-                if (mintingData.success) {
-                    HATS().mintHat(request.hatId, request.wearer);
-                    request.success = true;
-                } else {
-                    request.success = false;
-                    request.reason = mintingData.reason;
-                }
-
-                // Emit the event
-                emit HatMintingResultReceived(
-                    foundTriggerId,
-                    request.hatId,
-                    request.wearer,
-                    mintingData.success
-                );
-
-                return;
-            }
-        }
-
-        // If we get here, either we couldn't find a matching request
-        // or this is a direct offchain-triggered hat minting
 
         // For offchain-triggered events, create a new triggerId
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);

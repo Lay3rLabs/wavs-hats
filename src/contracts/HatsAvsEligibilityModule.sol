@@ -15,10 +15,6 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
-    /// @notice Mapping of trigger IDs to trigger data
-    mapping(TriggerId _triggerId => EligibilityTriggerData _data)
-        internal _triggerData;
-
     /// @notice Mapping of wearer address and hat ID to the latest result
     mapping(address _wearer => mapping(uint256 _hatId => EligibilityResult _result))
         internal _eligibilityResults;
@@ -26,13 +22,6 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
     /// @notice Mapping of wearer address and hat ID to the timestamp of the last update
     mapping(address _wearer => mapping(uint256 _hatId => uint256 _timestamp))
         internal _lastUpdateTimestamps;
-
-    /// @notice Minimum time between eligibility checks for a wearer and hat
-    uint256 public immutable eligibilityCheckCooldown;
-
-    /// @notice Mapping to track the last eligibility check for a wearer and hat
-    mapping(address _wearer => mapping(uint256 _hatId => uint256 _lastCheck))
-        public lastEligibilityChecks;
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
@@ -42,29 +31,14 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
      * @param _version The version of the module
-     * @param _eligibilityCheckCooldown Minimum time between eligibility checks
      */
     constructor(
         IHats _hats,
         address _serviceManager,
-        string memory _version,
-        uint256 _eligibilityCheckCooldown
+        string memory _version
     ) HatsModule(_version) {
         // Store service manager reference
         _serviceManagerAddr = _serviceManager;
-        eligibilityCheckCooldown = _eligibilityCheckCooldown;
-    }
-
-    /**
-     * @notice Initialize the module instance with config
-     * @param _initData The initialization data (unused in this implementation)
-     * @dev This is called by the factory during deployment
-     */
-    function _setUp(bytes calldata _initData) internal override {
-        // If there's initialization data, decode it
-        if (_initData.length > 0) {
-            // Leave this for potential future use
-        }
     }
 
     /**
@@ -81,26 +55,9 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
         require(_wearer != address(0), "Invalid wearer address");
         require(_hatId > 0, "Invalid hat ID");
 
-        // // Check if enough time has passed since the last check
-        // require(
-        //     block.timestamp >=
-        //         lastEligibilityChecks[_wearer][_hatId] +
-        //             eligibilityCheckCooldown,
-        //     "Eligibility check cooldown not elapsed"
-        // );
-
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
-
-        // Store trigger data
-        _triggerData[triggerId] = EligibilityTriggerData({
-            wearer: _wearer,
-            hatId: _hatId
-        });
-
-        // Update the last check timestamp
-        lastEligibilityChecks[_wearer][_hatId] = block.timestamp;
 
         // Emit the new structured event for WAVS
         emit EligibilityCheckTrigger(
@@ -134,21 +91,14 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
         );
 
         // Verify triggerId is valid
-        // NOTE: if you're forking this example you may not want to have any of this triggerId logic
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
-        // Get the trigger data
-        EligibilityTriggerData memory triggerData = _triggerData[
-            result.triggerId
-        ];
-
         // Verify data exists
-        require(triggerData.wearer != address(0), "Trigger data not found");
+        require(result.wearer != address(0), "Zero address is invalid");
 
         // Update the eligibility result
-        _eligibilityResults[triggerData.wearer][triggerData.hatId] = result;
-        _lastUpdateTimestamps[triggerData.wearer][triggerData.hatId] = block
-            .timestamp;
+        _eligibilityResults[result.wearer][result.hatId] = result;
+        _lastUpdateTimestamps[result.wearer][result.hatId] = block.timestamp;
 
         // Emit the event with unwrapped triggerId
         emit EligibilityResultReceived(

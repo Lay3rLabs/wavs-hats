@@ -118,7 +118,9 @@ contract HatsAvsEligibilityModuleTest is Test {
             .EligibilityResult({
                 triggerId: triggerId,
                 eligible: true,
-                standing: true
+                standing: true,
+                wearer: wearer,
+                hatId: hatId
             });
 
         // Simulate handleSignedData by updating the result directly

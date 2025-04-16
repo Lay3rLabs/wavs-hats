@@ -30,7 +30,7 @@ impl Guest for Component {
                 let active = true;
 
                 // Create a StatusResult with the proper triggerId from decoded data
-                let result = IHatsAvsTypes::StatusResult { triggerId, active };
+                let result = IHatsAvsTypes::StatusResult { triggerId, active, hatId };
 
                 // Log success message
                 eprintln!("Hat toggle component successfully processed the trigger");

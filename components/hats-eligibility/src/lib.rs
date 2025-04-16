@@ -30,6 +30,8 @@ impl Guest for Component {
                     triggerId: event.triggerId,
                     eligible,
                     standing,
+                    wearer: event.wearer,
+                    hatId: event.hatId,
                 };
 
                 // Log success message

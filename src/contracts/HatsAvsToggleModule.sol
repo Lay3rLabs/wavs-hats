@@ -15,21 +15,12 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
-    /// @notice Mapping of trigger IDs to trigger data
-    mapping(TriggerId _triggerId => uint256 _hatId) internal _triggerData;
-
     /// @notice Mapping of hat ID to the latest result
     mapping(uint256 _hatId => StatusResult _result) internal _statusResults;
 
     /// @notice Mapping of hat ID to the timestamp of the last update
     mapping(uint256 _hatId => uint256 _timestamp)
         internal _lastUpdateTimestamps;
-
-    /// @notice Minimum time between status checks for a hat
-    uint256 public immutable statusCheckCooldown;
-
-    /// @notice Mapping to track the last status check for a hat
-    mapping(uint256 _hatId => uint256 _lastCheck) public lastStatusChecks;
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
@@ -39,29 +30,14 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
      * @param _hats The Hats protocol contract - passed to factory, not used in constructor
      * @param _serviceManager The service manager address
      * @param _version The version of the module
-     * @param _statusCheckCooldown Minimum time between status checks
      */
     constructor(
         IHats _hats,
         address _serviceManager,
-        string memory _version,
-        uint256 _statusCheckCooldown
+        string memory _version
     ) HatsModule(_version) {
         // Store service manager reference
         _serviceManagerAddr = _serviceManager;
-        statusCheckCooldown = _statusCheckCooldown;
-    }
-
-    /**
-     * @notice Initialize the module instance with config
-     * @param _initData The initialization data
-     * @dev This is called by the factory during deployment
-     */
-    function _setUp(bytes calldata _initData) internal override {
-        // If there's initialization data, decode it
-        if (_initData.length > 0) {
-            // Leave this for potential future use
-        }
     }
 
     /**
@@ -75,24 +51,9 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
         // Input validation
         require(_hatId > 0, "Invalid hat ID");
 
-        // // Check if enough time has passed since the last check
-        // require(
-        //     block.timestamp >= lastStatusChecks[_hatId] + statusCheckCooldown,
-        //     "Status check cooldown not elapsed"
-        // );
-
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
-
-        // Store trigger data
-        _triggerData[triggerId] = _hatId;
-
-        // Update the last check timestamp
-        lastStatusChecks[_hatId] = block.timestamp;
-
-        // Emit the original event for backward compatibility
-        emit StatusCheckRequested(triggerId, _hatId);
 
         // Emit the new structured event for WAVS
         emit StatusCheckTrigger(
@@ -124,16 +85,9 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
         // Verify triggerId is valid
         require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
 
-        // TODO don't do this, just pass around hat directly to save storage.
-        // Get the hat ID from trigger data
-        uint256 hatId = _triggerData[result.triggerId];
-
-        // Verify hat ID is valid
-        require(hatId > 0, "Trigger data not found");
-
         // Update the status result
-        _statusResults[hatId] = result;
-        _lastUpdateTimestamps[hatId] = block.timestamp;
+        _statusResults[result.hatId] = result;
+        _lastUpdateTimestamps[result.hatId] = block.timestamp;
 
         // Emit the event with unwrapped triggerId
         emit StatusResultReceived(result.triggerId, result.active);

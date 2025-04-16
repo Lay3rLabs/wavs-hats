@@ -26,8 +26,6 @@ contract DeployHatsAVS is Script {
     using stdJson for string;
 
     // Default values for constructor parameters
-    uint256 public constant DEFAULT_ELIGIBILITY_CHECK_COOLDOWN = 1 hours;
-    uint256 public constant DEFAULT_STATUS_CHECK_COOLDOWN = 4 hours;
     string public constant VERSION = "0.1.0";
 
     /**
@@ -138,8 +136,7 @@ contract DeployHatsAVS is Script {
         HatsAvsEligibilityModule eligibilityImpl = new HatsAvsEligibilityModule(
             hats,
             _serviceManagerAddr,
-            VERSION,
-            DEFAULT_ELIGIBILITY_CHECK_COOLDOWN
+            VERSION
         );
         console.log(
             "HatsAvsEligibilityModule implementation deployed at: %s",
@@ -150,8 +147,7 @@ contract DeployHatsAVS is Script {
         HatsAvsToggleModule toggleImpl = new HatsAvsToggleModule(
             hats,
             _serviceManagerAddr,
-            VERSION,
-            DEFAULT_STATUS_CHECK_COOLDOWN
+            VERSION
         );
         console.log(
             "HatsAvsToggleModule implementation deployed at: %s",

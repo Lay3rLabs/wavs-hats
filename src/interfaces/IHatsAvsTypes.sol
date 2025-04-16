@@ -41,17 +41,8 @@ interface IHatsAvsTypes {
     struct StatusResult {
         TriggerId triggerId;
         bool active;
+        uint256 hatId;
     }
-
-    /**
-     * @notice Emitted when a new status check is requested
-     * @param triggerId The ID of the trigger
-     * @param hatId The ID of the hat
-     */
-    event StatusCheckRequested(
-        TriggerId indexed triggerId,
-        uint256 indexed hatId
-    );
 
     /**
      * @notice Emitted when a status check result is received
@@ -87,16 +78,6 @@ interface IHatsAvsTypes {
     );
 
     /**
-     * @notice Struct to store trigger data for eligibility checks
-     * @param wearer The address of the wearer
-     * @param hatId The ID of the hat
-     */
-    struct EligibilityTriggerData {
-        address wearer;
-        uint256 hatId;
-    }
-
-    /**
      * @notice Struct to store the result of an eligibility check
      * @param triggerId Unique identifier for the trigger
      * @param eligible Whether the wearer is eligible to wear the hat
@@ -106,6 +87,8 @@ interface IHatsAvsTypes {
         TriggerId triggerId;
         bool eligible;
         bool standing;
+        address wearer;
+        uint256 hatId;
     }
 
     /**
@@ -148,16 +131,6 @@ interface IHatsAvsTypes {
         address requestor;
         bool success;
         string reason;
-    }
-
-    /**
-     * @notice Struct for the encoded hat and wearer data
-     * @param hatId The hat ID to mint
-     * @param wearer The address that will wear the hat
-     */
-    struct EncodedHatMintingData {
-        uint256 hatId;
-        address wearer;
     }
 
     /**

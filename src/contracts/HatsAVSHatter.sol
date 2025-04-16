@@ -14,10 +14,6 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
     TriggerId public nextTriggerId;
 
-    /// @notice Mapping of trigger IDs to hat creation requests
-    mapping(TriggerId _triggerId => HatCreationData _request)
-        internal _hatRequests;
-
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
 
@@ -35,18 +31,6 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
         // Store service manager reference
         _serviceManagerAddr = _serviceManager;
     }
-
-    // /**
-    //  * @notice Initialize the module instance with config
-    //  * @param _initData The initialization data
-    //  * @dev This is called by the factory during deployment
-    //  */
-    // function _setUp(bytes calldata _initData) internal override {
-    //     // If there's initialization data, decode it
-    //     if (_initData.length > 0) {
-    //         // Leave this for potential future use
-    //     }
-    // }
 
     /**
      * @notice Request a hat creation
@@ -71,36 +55,11 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
         // Input validation
         require(_admin > 0, "Invalid admin hat ID");
 
-        // Check one of these permission scenarios:
-        // 1. The caller wears the admin hat directly (traditional permission)
-        // 2. This contract is an admin of the hat (can create child hats)
-        // 3. This contract wears an admin hat for this hat tree
-        // bool isAuthorized = HATS().isWearerOfHat(msg.sender, _admin) ||
-        //     HATS().isAdminOfHat(address(this), _admin) ||
-        //     HATS().isWearerOfHat(address(this), _admin);
-
-        // require(isAuthorized, "Not authorized to create hat");
-
         // Create new trigger ID
         nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
         triggerId = nextTriggerId;
 
-        // TODO: don't store the request here, just emit the event
-        // Store hat creation request
-        _hatRequests[triggerId] = HatCreationData({
-            admin: _admin,
-            details: _details,
-            maxSupply: _maxSupply,
-            eligibility: _eligibility,
-            toggle: _toggle,
-            mutable_: _mutable,
-            imageURI: _imageURI,
-            requestor: msg.sender,
-            hatId: 0,
-            success: false
-        });
-
-        // Emit the new structured event for WAVS
+        // Only emit the event, do not store the request
         emit HatCreationTrigger(
             TriggerId.unwrap(triggerId),
             msg.sender,
@@ -135,75 +94,6 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
             _data,
             (HatCreationData)
         );
-
-        // TODO: remove this
-        // // If this is a response to an existing request
-        // if (
-        //     TriggerId.unwrap(nextTriggerId) > 0 &&
-        //     creationData.requestor != address(0) &&
-        //     _hatRequests[TriggerId.wrap(1)].requestor != address(0)
-        // ) {
-        //     // Find the trigger ID if it exists
-        //     TriggerId foundTriggerId;
-        //     bool found = false;
-
-        //     // Only look at recent trigger IDs to avoid excessive gas consumption
-        //     uint64 maxCheck = 100;
-        //     uint64 current = TriggerId.unwrap(nextTriggerId);
-        //     uint64 startCheck = current > maxCheck ? current - maxCheck : 1;
-
-        //     for (uint64 i = startCheck; i <= current; i++) {
-        //         TriggerId tid = TriggerId.wrap(i);
-        //         HatCreationData storage request = _hatRequests[tid];
-
-        //         // Match against admin hat and requestor
-        //         if (
-        //             request.admin == creationData.admin &&
-        //             request.requestor == creationData.requestor
-        //         ) {
-        //             foundTriggerId = tid;
-        //             found = true;
-        //             break;
-        //         }
-        //     }
-
-        //     if (found) {
-        //         // Get the hat creation request
-        //         HatCreationData storage request = _hatRequests[foundTriggerId];
-
-        //         // If success flag is true, create the hat
-        //         if (creationData.success) {
-        //             // Create the hat
-        //             uint256 newHatId = HATS().createHat(
-        //                 request.admin,
-        //                 request.details,
-        //                 request.maxSupply,
-        //                 request.eligibility,
-        //                 request.toggle,
-        //                 request.mutable_,
-        //                 request.imageURI
-        //             );
-
-        //             // Update the request with the actual hat ID
-        //             request.hatId = newHatId;
-        //             request.success = true;
-
-        //             // Emit the event
-        //             emit HatCreationResultReceived(
-        //                 foundTriggerId,
-        //                 newHatId,
-        //                 true
-        //             );
-        //         }
-        //         return;
-        //     }
-        // }
-
-        // If we get here, either we couldn't find a matching request
-        // or this is a direct offchain-triggered hat creation
-
-        // // Validate admin hat
-        // require(creationData.admin > 0, "Invalid admin hat ID");
 
         // Create the hat directly
         if (creationData.success) {

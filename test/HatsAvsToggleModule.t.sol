@@ -105,7 +105,8 @@ contract HatsAvsToggleModuleTest is Test {
         // Create status result
         IHatsAvsTypes.StatusResult memory result = IHatsAvsTypes.StatusResult({
             triggerId: triggerId,
-            active: true
+            active: true,
+            hatId: hatId
         });
 
         // Simulate handleSignedData by updating the result directly
