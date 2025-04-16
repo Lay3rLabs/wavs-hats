@@ -3,8 +3,8 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsToggleServiceHandler} from "../src/contracts/HatsToggleServiceHandler.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {HatsAvsToggleModule} from "../src/contracts/HatsAvsToggleModule.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -28,15 +28,13 @@ contract ToggleTest is Script {
      */
     function run(uint256 _hatId) public {
         // Get deployment addresses from environment
-        address toggleHandlerAddr = vm.envAddress(
-            "HATS_TOGGLE_SERVICE_HANDLER"
-        );
+        address toggleHandlerAddr = vm.envAddress("HATS_AVS_TOGGLE_MODULE");
 
         console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
         console.log("Test hat ID:", _hatId);
 
         // Create contract instance
-        HatsToggleServiceHandler toggleHandler = HatsToggleServiceHandler(
+        HatsAvsToggleModule toggleHandler = HatsAvsToggleModule(
             toggleHandlerAddr
         );
 
@@ -70,16 +68,16 @@ contract ToggleTest is Script {
      * @param _hatId The hat ID to use
      */
     function _testToggle(
-        HatsToggleServiceHandler _handler,
+        HatsAvsToggleModule _handler,
         uint256 _hatId
     ) internal {
         console.log("\nTesting status check");
         try _handler.requestStatusCheck(_hatId) returns (
-            ITypes.TriggerId statusTriggerId
+            uint64 statusTriggerId
         ) {
             console.log(
                 "Status check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(statusTriggerId))
+                uint64(statusTriggerId)
             );
         } catch Error(string memory reason) {
             console.log("Status check request failed:", reason);

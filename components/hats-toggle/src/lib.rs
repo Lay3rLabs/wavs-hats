@@ -8,22 +8,7 @@ use bindings::{
 };
 use wavs_wasi_chain::decode_event_log_data;
 
-sol! {
-    type TriggerId is uint64;
-
-    #[derive(Debug)]
-    event StatusCheckTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        uint256 hatId
-    );
-
-    #[derive(Debug)]
-    struct StatusResult {
-        TriggerId triggerId;
-        bool active;
-    }
-}
+sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 struct Component;
 
@@ -32,7 +17,7 @@ impl Guest for Component {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
                 // Decode the StatusCheckTrigger event
-                let StatusCheckTrigger { triggerId, creator: _, hatId } =
+                let IHatsAvsTypes::StatusCheckTrigger { triggerId, creator: _, hatId } =
                     decode_event_log_data!(log)
                         .map_err(|e| format!("Failed to decode event log data: {}", e))?;
 
@@ -45,7 +30,7 @@ impl Guest for Component {
                 let active = true;
 
                 // Create a StatusResult with the proper triggerId from decoded data
-                let result = StatusResult { triggerId, active };
+                let result = IHatsAvsTypes::StatusResult { triggerId, active, hatId };
 
                 // Log success message
                 eprintln!("Hat toggle component successfully processed the trigger");

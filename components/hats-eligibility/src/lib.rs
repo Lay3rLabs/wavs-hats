@@ -8,27 +8,7 @@ use bindings::{
 };
 use wavs_wasi_chain::decode_event_log_data;
 
-sol! {
-    type TriggerId is uint64;
-
-    #[derive(Debug)]
-    event NewTrigger(bytes _triggerInfo);
-
-    #[derive(Debug)]
-    event EligibilityCheckTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        address wearer,
-        uint256 hatId
-    );
-
-    #[derive(Debug)]
-    struct EligibilityResult {
-        TriggerId triggerId;
-        bool eligible;
-        bool standing;
-    }
-}
+sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 struct Component;
 
@@ -36,10 +16,9 @@ impl Guest for Component {
     fn run(trigger_action: TriggerAction) -> std::result::Result<Option<Vec<u8>>, String> {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
-                // Decode the NewTrigger event to get the _triggerInfo bytes
-                let EligibilityCheckTrigger { triggerId, creator: _, wearer: _, hatId: _ } =
-                    decode_event_log_data!(log)
-                        .map_err(|e| format!("Failed to decode event log data: {}", e))?;
+                // Decode the EligibilityCheckTrigger event
+                let event: IHatsAvsTypes::EligibilityCheckTrigger = decode_event_log_data!(log)
+                    .map_err(|e| format!("Failed to decode event log data: {}", e))?;
 
                 // For this simplified implementation, we're just setting:
                 // eligible = true and standing = true
@@ -47,10 +26,16 @@ impl Guest for Component {
                 let standing = true;
 
                 // Create EligibilityResult with the proper triggerId from decoded data
-                let result = EligibilityResult { triggerId, eligible, standing };
+                let result = IHatsAvsTypes::EligibilityResult {
+                    triggerId: event.triggerId,
+                    eligible,
+                    standing,
+                    wearer: event.wearer,
+                    hatId: event.hatId,
+                };
 
                 // Log success message
-                eprintln!("Processed TriggerId: {}", triggerId);
+                eprintln!("Processed TriggerId: {}", event.triggerId);
 
                 // Return the ABI-encoded result
                 Ok(Some(result.abi_encode()))
