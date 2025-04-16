@@ -70,11 +70,11 @@ contract MinterTest is Script {
 
         // Test hat minting
         try minter.requestHatMinting(_hatId, _wearer) returns (
-            IHatsAvsTypes.TriggerId mintingTriggerId
+            uint64 mintingTriggerId
         ) {
             console.log(
                 "Hat minting requested with triggerId:",
-                uint64(IHatsAvsTypes.TriggerId.unwrap(mintingTriggerId))
+                uint64(mintingTriggerId)
             );
         } catch Error(string memory reason) {
             console.log("Hat minting request failed:", reason);

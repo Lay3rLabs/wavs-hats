@@ -84,10 +84,10 @@ contract CreatorTest is Script {
                 DEFAULT_MUTABLE,
                 DEFAULT_IMAGE_URI
             )
-        returns (IHatsAvsTypes.TriggerId triggerId) {
+        returns (uint64 triggerId) {
             console.log(
                 "Hat creation requested with triggerId:",
-                uint64(IHatsAvsTypes.TriggerId.unwrap(triggerId))
+                uint64(triggerId)
             );
         } catch Error(string memory reason) {
             console.log("requestHatCreation failed:", reason);

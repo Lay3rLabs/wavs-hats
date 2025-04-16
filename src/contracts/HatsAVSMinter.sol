@@ -12,7 +12,7 @@ import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
  */
 contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
-    TriggerId public nextTriggerId;
+    uint64 public nextTriggerId;
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
@@ -40,22 +40,17 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
     function requestHatMinting(
         uint256 _hatId,
         address _wearer
-    ) external returns (TriggerId triggerId) {
+    ) external returns (uint64 triggerId) {
         // Input validation
         require(_hatId > 0, "Invalid hat ID");
         require(_wearer != address(0), "Invalid wearer address");
 
         // Create new trigger ID
-        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        nextTriggerId = nextTriggerId + 1;
         triggerId = nextTriggerId;
 
         // Emit the new structured event for WAVS
-        emit MintingTrigger(
-            TriggerId.unwrap(triggerId),
-            msg.sender,
-            _hatId,
-            _wearer
-        );
+        emit MintingTrigger(triggerId, msg.sender, _hatId, _wearer);
     }
 
     /**
@@ -82,8 +77,8 @@ contract HatsAvsMinter is HatsModule, IHatsAvsTypes {
         require(mintingData.wearer != address(0), "Invalid wearer address");
 
         // For offchain-triggered events, create a new triggerId
-        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
-        TriggerId newTriggerId = nextTriggerId;
+        nextTriggerId = nextTriggerId + 1;
+        uint64 newTriggerId = nextTriggerId;
 
         // Mint the hat directly if success flag is true
         if (mintingData.success) {

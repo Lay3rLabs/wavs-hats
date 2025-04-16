@@ -12,7 +12,7 @@ import {IHatsAvsTypes} from "../interfaces/IHatsAvsTypes.sol";
  */
 contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
-    TriggerId public nextTriggerId;
+    uint64 public nextTriggerId;
 
     /// @notice Service manager instance
     address private immutable _serviceManagerAddr;
@@ -51,17 +51,17 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
         address _toggle,
         bool _mutable,
         string calldata _imageURI
-    ) external returns (TriggerId triggerId) {
+    ) external returns (uint64 triggerId) {
         // Input validation
         require(_admin > 0, "Invalid admin hat ID");
 
         // Create new trigger ID
-        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        nextTriggerId = nextTriggerId + 1;
         triggerId = nextTriggerId;
 
         // Only emit the event, do not store the request
         emit HatCreationTrigger(
-            TriggerId.unwrap(triggerId),
+            triggerId,
             msg.sender,
             _admin,
             _details,
@@ -108,8 +108,8 @@ contract HatsAvsHatter is HatsModule, IHatsAvsTypes {
             );
 
             // Create a new triggerId for this offchain-triggered event
-            nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
-            TriggerId newTriggerId = nextTriggerId;
+            nextTriggerId = nextTriggerId + 1;
+            uint64 newTriggerId = nextTriggerId;
 
             // Emit the event
             emit HatCreationResultReceived(newTriggerId, newHatId, true);

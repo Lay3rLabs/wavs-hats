@@ -6,8 +6,8 @@ TODO:
 
 - [x] Consolidate all service types into IHatsAvsTypes.sol
 - [x] Update components to use new IHatsAvsTypes.sol
-- [ ] Rename contracts to be nicer
-- [ ] Remove unneeded trigger logic code
+- [x] Rename contracts to be nicer
+- [x] Remove unneeded trigger logic code
 - [ ] Make agent support both openai and llama (struggling with environment variable testing)
 - [ ] Make agent support tools
 - [ ] Deploy hats with zodiac
@@ -94,29 +94,6 @@ Now, deploy the contracts:
 # Deploy the contracts
 forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost:8545 --broadcast
 ```
-
-After deployment, the script will add the deployed contract addresses to your `.env` file:
-
-```bash
-# Hats Protocol AVS Integration Addresses
-HATS_ELIGIBILITY_SERVICE_HANDLER_IMPL=0x...
-HATS_TOGGLE_SERVICE_HANDLER_IMPL=0x...
-HATS_AVS_HATTER_IMPL=0x...
-HATS_AVS_MINTER_IMPL=0x...
-HATS_ELIGIBILITY_SERVICE_HANDLER=0x...
-HATS_TOGGLE_SERVICE_HANDLER=0x...
-HATS_AVS_HATTER=0x...
-HATS_AVS_MINTER=0x...
-HATS_AVS_MANAGER=0x...
-```
-
-Load these new environment variables with:
-
-```bash
-source .env
-```
-
-The `DeployHatsAVS` script will fail if there are existing environment variables. You can clean them with `./clean_env.sh`.
 
 ### Deploy Service Components
 

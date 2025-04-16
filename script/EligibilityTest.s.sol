@@ -86,11 +86,11 @@ contract EligibilityTest is Script {
     ) internal {
         console.log("\nTesting eligibility check");
         try _handler.requestEligibilityCheck(_account, _hatId) returns (
-            IHatsAvsTypes.TriggerId eligibilityTriggerId
+            uint64 eligibilityTriggerId
         ) {
             console.log(
                 "Eligibility check requested with triggerId:",
-                uint64(IHatsAvsTypes.TriggerId.unwrap(eligibilityTriggerId))
+                uint64(eligibilityTriggerId)
             );
         } catch Error(string memory reason) {
             console.log("Eligibility check request failed:", reason);

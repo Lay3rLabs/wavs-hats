@@ -13,7 +13,7 @@ import {HatsModule} from "@hats-module/src/HatsModule.sol";
  */
 contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
-    TriggerId public nextTriggerId;
+    uint64 public nextTriggerId;
 
     /// @notice Mapping of hat ID to the latest result
     mapping(uint256 _hatId => StatusResult _result) internal _statusResults;
@@ -47,20 +47,16 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
      */
     function requestStatusCheck(
         uint256 _hatId
-    ) external returns (TriggerId triggerId) {
+    ) external returns (uint64 triggerId) {
         // Input validation
         require(_hatId > 0, "Invalid hat ID");
 
         // Create new trigger ID
-        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        nextTriggerId = nextTriggerId + 1;
         triggerId = nextTriggerId;
 
         // Emit the new structured event for WAVS
-        emit StatusCheckTrigger(
-            TriggerId.unwrap(triggerId),
-            msg.sender,
-            _hatId
-        );
+        emit StatusCheckTrigger(triggerId, msg.sender, _hatId);
     }
 
     /**
@@ -83,7 +79,7 @@ contract HatsAvsToggleModule is HatsToggleModule, IHatsAvsTypes {
         StatusResult memory result = abi.decode(_data, (StatusResult));
 
         // Verify triggerId is valid
-        require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
+        require(result.triggerId > 0, "Invalid triggerId");
 
         // Update the status result
         _statusResults[result.hatId] = result;

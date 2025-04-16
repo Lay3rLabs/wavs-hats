@@ -75,11 +75,11 @@ contract ToggleTest is Script {
     ) internal {
         console.log("\nTesting status check");
         try _handler.requestStatusCheck(_hatId) returns (
-            IHatsAvsTypes.TriggerId statusTriggerId
+            uint64 statusTriggerId
         ) {
             console.log(
                 "Status check requested with triggerId:",
-                uint64(IHatsAvsTypes.TriggerId.unwrap(statusTriggerId))
+                uint64(statusTriggerId)
             );
         } catch Error(string memory reason) {
             console.log("Status check request failed:", reason);

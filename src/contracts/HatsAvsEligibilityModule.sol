@@ -13,7 +13,7 @@ import {HatsModule} from "@hats-module/src/HatsModule.sol";
  */
 contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
     /// @notice The next trigger ID to be assigned
-    TriggerId public nextTriggerId;
+    uint64 public nextTriggerId;
 
     /// @notice Mapping of wearer address and hat ID to the latest result
     mapping(address _wearer => mapping(uint256 _hatId => EligibilityResult _result))
@@ -50,22 +50,17 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
     function requestEligibilityCheck(
         address _wearer,
         uint256 _hatId
-    ) external returns (TriggerId triggerId) {
+    ) external returns (uint64 triggerId) {
         // Input validation
         require(_wearer != address(0), "Invalid wearer address");
         require(_hatId > 0, "Invalid hat ID");
 
         // Create new trigger ID
-        nextTriggerId = TriggerId.wrap(TriggerId.unwrap(nextTriggerId) + 1);
+        nextTriggerId = nextTriggerId + 1;
         triggerId = nextTriggerId;
 
         // Emit the new structured event for WAVS
-        emit EligibilityCheckTrigger(
-            TriggerId.unwrap(triggerId),
-            msg.sender,
-            _wearer,
-            _hatId
-        );
+        emit EligibilityCheckTrigger(triggerId, msg.sender, _wearer, _hatId);
     }
 
     /**
@@ -91,7 +86,7 @@ contract HatsAvsEligibilityModule is HatsEligibilityModule, IHatsAvsTypes {
         );
 
         // Verify triggerId is valid
-        require(TriggerId.unwrap(result.triggerId) > 0, "Invalid triggerId");
+        require(result.triggerId > 0, "Invalid triggerId");
 
         // Verify data exists
         require(result.wearer != address(0), "Zero address is invalid");
