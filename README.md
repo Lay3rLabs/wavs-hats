@@ -8,6 +8,7 @@ TODO:
 - [x] Update components to use new IHatsAvsTypes.sol
 - [x] Rename contracts to be nicer
 - [x] Remove unneeded trigger logic code
+- [ ] Check hats creation still works
 - [ ] Make agent support both openai and llama (struggling with environment variable testing)
 - [ ] Make agent support tools
 - [ ] Deploy hats with zodiac
@@ -100,11 +101,19 @@ forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost
 After deploying the contracts, you need to deploy all WAVS service components:
 
 ```bash
+# Get deployed contract addresses
+export HATS_AVS_ELIGIBILITY_MODULE=`jq -r '.eligibilityModule' "./.docker/script_deploy.json"`
+export HATS_AVS_TOGGLE_MODULE=`jq -r '.toggleModule' "./.docker/script_deploy.json"`
+export HATS_AVS_MINTER=`jq -r '.minter' "./.docker/script_deploy.json"`
+export HATS_AVS_HATTER=`jq -r '.hatter' "./.docker/script_deploy.json"`
+export HATS_PROTOCOL_ADDRESS=`jq -r '.hatsProtocol' "./.docker/script_deploy.json"`
+
+
 # Deploy the eligibility service component
-COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_ELIGIBILITY_SERVICE_HANDLER TRIGGER_EVENT="EligibilityCheckTrigger(uint64,address,address,uint256)" make deploy-service
+COMPONENT_FILENAME=wavs_hats_eligibility.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_ELIGIBILITY_MODULE SERVICE_SUBMISSION_ADDR=$HATS_AVS_ELIGIBILITY_MODULE TRIGGER_EVENT="EligibilityCheckTrigger(uint64,address,address,uint256)" make deploy-service
 
 # Deploy the toggle service component
-COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_TOGGLE_SERVICE_HANDLER SERVICE_SUBMISSION_ADDR=$HATS_TOGGLE_SERVICE_HANDLER TRIGGER_EVENT="StatusCheckTrigger(uint64,address,uint256)" make deploy-service
+COMPONENT_FILENAME=wavs_hats_toggle.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_TOGGLE_MODULE SERVICE_SUBMISSION_ADDR=$HATS_AVS_TOGGLE_MODULE TRIGGER_EVENT="StatusCheckTrigger(uint64,address,uint256)" make deploy-service
 
 # Deploy the minter service component
 COMPONENT_FILENAME=wavs_hats_minter.wasm SERVICE_TRIGGER_ADDR=$HATS_AVS_MINTER SERVICE_SUBMISSION_ADDR=$HATS_AVS_MINTER TRIGGER_EVENT="MintingTrigger(uint64,address,uint256,address)" make deploy-service

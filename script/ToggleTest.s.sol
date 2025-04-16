@@ -28,9 +28,7 @@ contract ToggleTest is Script {
      */
     function run(uint256 _hatId) public {
         // Get deployment addresses from environment
-        address toggleHandlerAddr = vm.envAddress(
-            "HATS_TOGGLE_SERVICE_HANDLER"
-        );
+        address toggleHandlerAddr = vm.envAddress("HATS_AVS_TOGGLE_MODULE");
 
         console.log("Hats Toggle Service Handler address:", toggleHandlerAddr);
         console.log("Test hat ID:", _hatId);

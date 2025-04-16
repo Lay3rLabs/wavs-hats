@@ -22,9 +22,9 @@ contract CreatorTest is Script {
     function run() public {
         // Get the necessary addresses
         address eligibilityHandler = vm.envAddress(
-            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+            "HATS_AVS_ELIGIBILITY_MODULE"
         );
-        address toggleHandler = vm.envAddress("HATS_TOGGLE_SERVICE_HANDLER");
+        address toggleHandler = vm.envAddress("HATS_AVS_TOGGLE_MODULE");
         address hatterAddr = vm.envAddress("HATS_AVS_HATTER");
         address hatsAddr = vm.envAddress("HATS_PROTOCOL_ADDRESS");
 

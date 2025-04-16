@@ -28,6 +28,11 @@ contract DeployHatsAVS is Script {
     // Default values for constructor parameters
     string public constant VERSION = "0.1.0";
 
+    // Add at the top of your run() function or as a class variable
+    string public root = vm.projectRoot();
+    string public script_output_path =
+        string.concat(root, "/.docker/script_deploy.json");
+
     /**
      * @notice Run the deployment script
      */
@@ -65,53 +70,97 @@ contract DeployHatsAVS is Script {
             implAddrs
         );
 
-        // Update or add addresses to .env file
-        CoreAddresses memory core = CoreAddresses({
-            hatsAddr: hatsAddr,
-            moduleFactoryAddr: moduleFactoryAddr
-        });
-
-        // Serialize deployment data to JSON
-        string memory json = "json";
-        json.serialize("deployer", Strings.toHexString(deployer));
-        json.serialize(
-            "serviceManager",
-            Strings.toHexString(serviceManagerAddr)
+        // Write addresses to JSON file
+        writeAddressesToFile(
+            deployer,
+            serviceManagerAddr,
+            hatsAddr,
+            moduleFactoryAddr,
+            implAddrs,
+            instanceAddrs
         );
-        json.serialize("hatsProtocol", Strings.toHexString(hatsAddr));
-        json.serialize("moduleFactory", Strings.toHexString(moduleFactoryAddr));
-        json.serialize(
-            "eligibilityImpl",
-            Strings.toHexString(implAddrs.eligibilityImplAddr)
-        );
-        json.serialize(
-            "toggleImpl",
-            Strings.toHexString(implAddrs.toggleImplAddr)
-        );
-        json.serialize(
-            "hatterImpl",
-            Strings.toHexString(implAddrs.hatterImplAddr)
-        );
-        json.serialize(
-            "minterImpl",
-            Strings.toHexString(implAddrs.minterImplAddr)
-        );
-        json.serialize(
-            "eligibilityHandler",
-            Strings.toHexString(instanceAddrs.eligibilityHandlerAddr)
-        );
-        json.serialize(
-            "toggleHandler",
-            Strings.toHexString(instanceAddrs.toggleHandlerAddr)
-        );
-        json.serialize("hatter", Strings.toHexString(instanceAddrs.hatterAddr));
-        json.serialize("minter", Strings.toHexString(instanceAddrs.minterAddr));
-
-        // Write JSON to file
-        vm.writeFile("/.docker/script_deploy.json", json);
 
         // Log deployment completion
         console.log("Hats Protocol WAVS AVS integration deployed successfully");
+    }
+
+    /**
+     * @notice Write addresses to JSON file in smaller chunks to avoid stack too deep errors
+     */
+    function writeAddressesToFile(
+        address deployer,
+        address serviceManagerAddr,
+        address hatsAddr,
+        address moduleFactoryAddr,
+        ImplementationAddresses memory implAddrs,
+        InstanceAddresses memory instanceAddrs
+    ) internal {
+        // Write address pairs to file iteratively to avoid stack depth issues
+        vm.writeFile(script_output_path, "{");
+
+        appendAddressPair("deployer", deployer, true);
+        appendAddressPair("serviceManager", serviceManagerAddr, false);
+        appendAddressPair("hatsProtocol", hatsAddr, false);
+        appendAddressPair("moduleFactory", moduleFactoryAddr, false);
+
+        appendAddressPair(
+            "eligibilityModuleImpl",
+            implAddrs.eligibilityImplAddr,
+            false
+        );
+        appendAddressPair("toggleModuleImpl", implAddrs.toggleImplAddr, false);
+        appendAddressPair("hatterImpl", implAddrs.hatterImplAddr, false);
+        appendAddressPair("minterImpl", implAddrs.minterImplAddr, false);
+
+        appendAddressPair(
+            "eligibilityModule",
+            instanceAddrs.eligibilityHandlerAddr,
+            false
+        );
+        appendAddressPair(
+            "toggleModule",
+            instanceAddrs.toggleHandlerAddr,
+            false
+        );
+        appendAddressPair("hatter", instanceAddrs.hatterAddr, false);
+        appendAddressPair("minter", instanceAddrs.minterAddr, false);
+
+        appendToFile("}");
+    }
+
+    /**
+     * @notice Append an address pair to the JSON file
+     * @param key The key for the JSON object
+     * @param addr The address to write
+     * @param isFirst Whether this is the first pair (no leading comma)
+     */
+    function appendAddressPair(
+        string memory key,
+        address addr,
+        bool isFirst
+    ) internal {
+        string memory prefix = isFirst ? "" : ",";
+        string memory pair = string.concat(
+            prefix,
+            '"',
+            key,
+            '":"',
+            Strings.toHexString(addr),
+            '"'
+        );
+        appendToFile(pair);
+    }
+
+    /**
+     * @notice Append a string to the JSON file
+     * @param content The content to append
+     */
+    function appendToFile(string memory content) internal {
+        string memory currentContent = vm.readFile(script_output_path);
+        vm.writeFile(
+            script_output_path,
+            string.concat(currentContent, content)
+        );
     }
 
     /**

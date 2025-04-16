@@ -32,7 +32,7 @@ contract EligibilityTest is Script {
     function run(address _account, uint256 _hatId) public {
         // Get deployment addresses from environment
         address eligibilityHandlerAddr = vm.envAddress(
-            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+            "HATS_AVS_ELIGIBILITY_MODULE"
         );
 
         console.log(

@@ -39,11 +39,9 @@ contract CheckHatsAVSResults is Script {
     ) public {
         // Get deployment addresses from environment
         address eligibilityHandlerAddr = vm.envAddress(
-            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+            "HATS_AVS_ELIGIBILITY_MODULE"
         );
-        address toggleHandlerAddr = vm.envAddress(
-            "HATS_TOGGLE_SERVICE_HANDLER"
-        );
+        address toggleHandlerAddr = vm.envAddress("HATS_AVS_TOGGLE_MODULE");
 
         console.log(
             "Hats Eligibility Service Handler address:",
