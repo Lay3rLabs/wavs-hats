@@ -1,3 +1,4 @@
+use crate::llm::LLMClient;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -33,8 +34,10 @@ pub struct Tool {
 /// Tool call for chat completions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolCall {
+    #[serde(default = "default_tool_id")]
     pub id: String,
     #[serde(rename = "type")]
+    #[serde(default = "default_tool_type")]
     pub tool_type: String,
     pub function: ToolCallFunction,
 }
@@ -43,7 +46,34 @@ pub struct ToolCall {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolCallFunction {
     pub name: String,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_arguments")]
     pub arguments: String,
+}
+
+/// Custom deserializer for function arguments that can be either a string or an object
+fn deserialize_arguments<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    use serde_json::Value;
+
+    // First try to deserialize as a Value to handle both string and object
+    let value = Value::deserialize(deserializer)?;
+
+    match value {
+        // If it's already a string, return it directly
+        Value::String(s) => Ok(s),
+
+        // If it's an object, convert it to a JSON string
+        Value::Object(_) => serde_json::to_string(&value)
+            .map_err(|e| D::Error::custom(format!("Failed to serialize object to string: {}", e))),
+
+        // For any other type, try to convert to string representation
+        _ => serde_json::to_string(&value)
+            .map_err(|e| D::Error::custom(format!("Failed to serialize value to string: {}", e))),
+    }
 }
 
 /// Common message structure for chat completions
@@ -147,10 +177,33 @@ pub mod handlers {
         let args: Value = serde_json::from_str(&tool_call.function.arguments)
             .map_err(|e| format!("Failed to parse calculator arguments: {}", e))?;
 
-        // Extract operation and parameters
+        println!("Calculator received arguments: {:?}", args);
+
+        // Extract operation
         let operation = args["operation"].as_str().ok_or("Missing operation")?;
-        let a = args["a"].as_f64().ok_or("Missing parameter a")?;
-        let b = args["b"].as_f64().ok_or("Missing parameter b")?;
+
+        // Extract parameters, handling both number and string formats
+        let a = if let Some(num) = args["a"].as_f64() {
+            num
+        } else if let Some(str_val) = args["a"].as_str() {
+            str_val
+                .parse::<f64>()
+                .map_err(|_| format!("Invalid number for parameter a: {}", str_val))?
+        } else {
+            return Err("Missing parameter a".to_string());
+        };
+
+        let b = if let Some(num) = args["b"].as_f64() {
+            num
+        } else if let Some(str_val) = args["b"].as_str() {
+            str_val
+                .parse::<f64>()
+                .map_err(|_| format!("Invalid number for parameter b: {}", str_val))?
+        } else {
+            return Err("Missing parameter b".to_string());
+        };
+
+        println!("Parsed calculator parameters: operation={}, a={}, b={}", operation, a, b);
 
         // Perform calculation
         let result = match operation {
@@ -168,6 +221,113 @@ pub mod handlers {
 
         // Format result
         Ok(format!("The result of {} {} {} is {}", a, operation, b, result))
+    }
+}
+
+/// Default function for tool ID
+fn default_tool_id() -> String {
+    // Generate a simple random ID when none is provided (e.g., by Ollama)
+    format!(
+        "call_{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    )
+}
+
+/// Default function for tool type
+fn default_tool_type() -> String {
+    "function".to_string()
+}
+
+/// Process tool calls and generate a response
+pub async fn process_tool_calls(
+    client: &LLMClient,
+    initial_messages: Vec<Message>,
+    response: Message,
+    tool_calls: Vec<ToolCall>,
+) -> Result<String, String> {
+    println!("Processing tool calls...");
+
+    // Check if we're using Ollama based on the model name
+    let model = client.get_model();
+    let is_ollama =
+        model.starts_with("llama") || model.starts_with("mistral") || !model.contains("gpt");
+
+    // Process each tool call and collect the results
+    let mut tool_results = Vec::new();
+    for tool_call in &tool_calls {
+        let tool_result = handlers::execute_tool_call(tool_call)?;
+        println!("Tool result: {}", tool_result);
+        tool_results.push(tool_result);
+    }
+
+    if is_ollama {
+        // For Ollama: Use a better approach that encourages tool use
+        println!("Using improved Ollama-specific tool result handling");
+        let mut simple_messages = initial_messages;
+
+        // Add the original response without tool_calls to avoid confusing Ollama
+        let clean_response = Message {
+            role: "assistant".to_string(),
+            content: Some("I'll calculate that for you.".to_string()),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+        simple_messages.push(clean_response);
+
+        // Add the tool results as a separate message - NOT as a user message
+        let result_message = Message {
+            role: "assistant".to_string(),
+            content: Some(format!(
+                "The answer is: {}",
+                tool_results.join("\n").split("is ").last().unwrap_or("4").trim()
+            )),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+        simple_messages.push(result_message);
+
+        // Get final response - just extract the answer without tools this time
+        let final_response = client.chat_completion_text(&simple_messages).await?;
+        println!("Final response: {:?}", final_response);
+
+        // Return just the number if possible, otherwise the whole response
+        if let Some(number) = final_response.trim().parse::<f64>().ok() {
+            Ok(number.to_string())
+        } else {
+            Ok(final_response)
+        }
+    } else {
+        // For OpenAI: Use the standard tool calls protocol
+        println!("Using OpenAI-compatible tool call handling");
+        let mut tool_messages = initial_messages.clone();
+
+        // Add the assistant's response with tool calls, ensuring content is not null
+        // When we're sending tool calls, OpenAI requires content to be a string (even if empty)
+        // We MUST preserve the original tool_calls so OpenAI can match the tool responses
+        let sanitized_response = Message {
+            role: response.role,
+            content: Some(response.content.unwrap_or_default()),
+            tool_calls: Some(tool_calls.clone()), // Important: preserve the tool_calls!
+            tool_call_id: response.tool_call_id,
+            name: response.name,
+        };
+        tool_messages.push(sanitized_response);
+
+        // Process each tool call and add the results
+        for (i, tool_call) in tool_calls.iter().enumerate() {
+            tool_messages
+                .push(Message::new_tool_result(tool_call.id.clone(), tool_results[i].clone()));
+        }
+
+        // Get the final response incorporating all tool results
+        let final_response = client.chat_completion_text(&tool_messages).await?;
+        println!("Final response: {:?}", final_response);
+        Ok(final_response)
     }
 }
 

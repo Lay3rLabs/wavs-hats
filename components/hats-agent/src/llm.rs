@@ -85,6 +85,11 @@ impl LLMClient {
         Ok(Self { model: model.to_string(), api_url, api_key })
     }
 
+    /// Get the model name
+    pub fn get_model(&self) -> &str {
+        &self.model
+    }
+
     /// Send a chat completion request, with optional tools
     pub async fn chat_completion(
         &self,
@@ -135,9 +140,25 @@ impl LLMClient {
                 }
             });
 
-            // Add tools if provided (might not be supported by all Ollama versions)
+            // Add tools if provided for Ollama (using the format Ollama expects)
             if let Some(tools_list) = tools {
+                // Standard tools format - might work for some Ollama versions
                 request["tools"] = json!(tools_list);
+
+                // Also include functions key which some Ollama versions might need
+                // Convert tools to format compatible with Ollama
+                let functions = tools_list
+                    .iter()
+                    .map(|tool| {
+                        json!({
+                            "name": tool.function.name,
+                            "description": tool.function.description,
+                            "parameters": tool.function.parameters
+                        })
+                    })
+                    .collect::<Vec<_>>();
+
+                request["functions"] = json!(functions);
             }
 
             request
@@ -220,13 +241,32 @@ impl LLMClient {
                 .ok_or_else(|| "No response choices returned".to_string())
         } else {
             // Parse Ollama chat response format
-            #[derive(Deserialize)]
+            #[derive(Debug, Deserialize)]
             struct OllamaResponse {
                 message: Message,
+                #[serde(default)]
+                model: String,
+                #[serde(default)]
+                created_at: String,
             }
 
-            let resp: OllamaResponse = serde_json::from_str(&body)
-                .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+            println!("Parsing Ollama response with our new format handler");
+
+            // First parse as raw Value to inspect the structure
+            let raw_value: serde_json::Value = serde_json::from_str(&body)
+                .map_err(|e| format!("Failed to parse Ollama response as JSON: {}", e))?;
+
+            println!("Successfully parsed as raw JSON: {:?}", raw_value);
+
+            // Now try to deserialize with our custom deserializers
+            let resp: OllamaResponse = serde_json::from_str(&body).map_err(|e| {
+                // Print more debugging info
+                println!("Error parsing Ollama response: {}", e);
+                println!("Response body: {}", body);
+                format!("Failed to parse Ollama response: {}", e)
+            })?;
+
+            println!("Successfully parsed Ollama response: {:?}", resp.message);
 
             Ok(resp.message)
         }

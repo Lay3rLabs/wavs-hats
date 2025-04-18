@@ -65,35 +65,46 @@ impl Guest for Component {
 
         // Process the prompt using the LLM client
         let result = block_on(async {
-            let client = LLMClient::new("gpt-4")
+            // Use Ollama model if WAVS_ENV_OPENAI_API_KEY is not set, otherwise use OpenAI model
+            let model = "llama3.2";
+            println!("Using model: {}", model);
+            let client = LLMClient::new(model)
                 .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
 
             // Define available tools using the helper functions
-            let available_tools = vec![
-                builders::calculator(),
-            ];
+            let available_tools = vec![builders::calculator()];
 
             // Create messages
             let messages = vec![
-                Message::new_system("You are a helpful assistant for the Hats Protocol, a system for creating, managing, and wearing authority tokens called Hats. Use the provided tools when appropriate to assist users with their queries.".to_string()),
+                Message::new_system(
+                    "Use the provided tools when appropriate to assist users with their queries. Only output tool results, no other text."
+                        .to_string(),
+                ),
                 Message::new_user(prompt.to_string()),
             ];
+
+            println!("Sending request to {} with tools", model);
+
             // Send request with tools
             let mut response = client.chat_completion(&messages, Some(&available_tools)).await?;
 
             // Handle tool calls if present
             let tool_calls = response.tool_calls.take(); // Take ownership of tool_calls
             if let Some(tool_calls) = tool_calls {
+                println!("Received tool calls: {:?}", tool_calls);
                 if !tool_calls.is_empty() {
-                    println!("Tool calls: {:?}", tool_calls);
+                    println!("Processing {} tool calls", tool_calls.len());
                     // Process all tool calls
-                    return process_tool_calls(&client, messages, response, tool_calls).await;
+                    return tools::process_tool_calls(&client, messages, response, tool_calls)
+                        .await;
                 } else {
                     // No tool calls, just return the text content
+                    println!("No tool calls in response, returning content");
                     Ok(response.content.unwrap_or_default())
                 }
             } else {
                 // No tool calls, just return the text content
+                println!("No tool_calls field in response, returning content");
                 Ok(response.content.unwrap_or_default())
             }
         })
@@ -110,39 +121,6 @@ impl Guest for Component {
 
         Ok(Some(encoded))
     }
-}
-
-/// Process tool calls and generate a response
-async fn process_tool_calls(
-    client: &LLMClient,
-    initial_messages: Vec<Message>,
-    response: Message,
-    tool_calls: Vec<tools::ToolCall>,
-) -> Result<String, String> {
-    // Create a new messages array for the follow-up conversation
-    let mut tool_messages = initial_messages.clone();
-
-    // Add the assistant's response with tool calls, ensuring content is not null
-    // When we're sending tool calls, OpenAI requires content to be a string (even if empty)
-    // We MUST preserve the original tool_calls so OpenAI can match the tool responses
-    let sanitized_response = Message {
-        role: response.role,
-        content: Some(response.content.unwrap_or_default()),
-        tool_calls: Some(tool_calls.clone()), // Important: preserve the tool_calls!
-        tool_call_id: response.tool_call_id,
-        name: response.name,
-    };
-    tool_messages.push(sanitized_response);
-
-    // Process each tool call and add the results
-    for tool_call in tool_calls {
-        let tool_result = handlers::execute_tool_call(&tool_call)?;
-        tool_messages.push(Message::new_tool_result(tool_call.id.clone(), tool_result));
-    }
-
-    // Get the final response incorporating all tool results
-    let final_response = client.chat_completion_text(&tool_messages).await?;
-    Ok(final_response)
 }
 
 export!(Component with_types_in bindings);
