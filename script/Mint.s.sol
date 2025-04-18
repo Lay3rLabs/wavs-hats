@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.28;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
@@ -9,10 +9,10 @@ import {Utils} from "./Utils.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 
 /**
- * @title MinterTest
+ * @title Mint
  * @notice Script to test the HatsAvsMinter contract
  */
-contract MinterTest is Script {
+contract Mint is Script {
     // Define constants
     address constant DEFAULT_WEARER =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;

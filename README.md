@@ -8,14 +8,17 @@ TODO:
 - [x] Update components to use new IHatsAvsTypes.sol
 - [x] Rename contracts to be nicer
 - [x] Remove unneeded trigger logic code
-- [ ] Check hats creation still works
-- [ ] Make agent support both openai and llama (struggling with environment variable testing)
-- [ ] Make agent support tools
-- [ ] Deploy hats with zodiac
+- [x] Make agent support both openai and llama (struggling with environment variable testing)
+- [x] Refactor script names and consolidate
+- [x] Make agent support tools
+- [x] Support more Open AI models
+- [ ] Add hats address KV
+- [ ] Deploy hats with zodiac + safe
 - [ ] Deploy hats with eligibility module chaining
 - [ ] Chain staking eligibility module and AVS eligibility module (bonus)
 - [ ] Hat minter should ensure minting prompts if funds are staked
 - [ ] Create hat should make a hat with the prompt, plus params
+- [ ] Check hats creation still works
 
 NOTE: these are NOT audited and NOT PRODUCTION READY. Right now they work by letting anyone to trigger events that cause the services to run, and meant only for experimentation.
 
@@ -91,7 +94,7 @@ Now, deploy the contracts:
 
 ```bash
 # Deploy the contracts
-forge script script/DeployHatsAVS.s.sol:DeployHatsAVS --rpc-url http://localhost:8545 --broadcast
+forge script script/Deploy.s.sol:Deploy --rpc-url http://localhost:8545 --broadcast
 ```
 
 ### Deploy Service Components
@@ -126,28 +129,34 @@ After deploying all contracts and service components, you can test each componen
 
 ### Checking Results
 
-After running any of the test scripts, you should wait a few seconds for the WAVS services to process the requests. Then, you can check the results:
+After running any of the test scripts, you should wait a few seconds for the WAVS services to process the requests. Then, you can check the results using the consolidated CheckResults script:
 
 ```bash
 # Check all results
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545
 
 # Check only eligibility results
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
 
 # Check only toggle results
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
 
 # Check minting results
-forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 3 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
+
+# Check creator results
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 4 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0 0
+
+# Check creator results with specific admin hat
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "runCreator(uint256,address)" 281474976710656 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 ```
 
-Parameters for CheckHatsAVSResults.s.sol:
+Parameters for CheckResults.s.sol run function:
 
-- First parameter (uint8): Mode (0=all, 1=eligibility only, 2=toggle only)
-- Second parameter (address): Wearer address to check eligibility for
-- Third parameter (uint256): Hat ID to check eligibility for
-- Fourth parameter (uint256): Hat ID to check status for
+- First parameter (uint8): Mode (0=all, 1=eligibility only, 2=toggle only, 3=minter, 4=creator)
+- Second parameter (address): Wearer address to check
+- Third parameter (uint256): Hat ID to check for eligibility or minting
+- Fourth parameter (uint256): Hat ID to check status for toggle
 
 ### Testing Eligibility
 
@@ -155,16 +164,16 @@ To test the eligibility service:
 
 ```bash
 # Request an eligibility check (uses default account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 and hat ID 1)
-forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Eligibility.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also specify a custom account and hat ID
-forge script script/EligibilityTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
+forge script script/Eligibility.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 ```
 
 Check the eligibility results:
 
 ```bash
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 1 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
 ```
 
 ### Testing Toggle
@@ -173,16 +182,16 @@ To test the toggle (hat status) service:
 
 ```bash
 # Request a status check (uses default hat ID 1)
-forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Toggle.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also specify a custom hat ID
-forge script script/ToggleTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint256)" 1
+forge script script/Toggle.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(uint256)" 1
 ```
 
 Check the toggle results:
 
 ```bash
-forge script script/CheckHatsAVSResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 2 0x0000000000000000000000000000000000000000 0 1
 ```
 
 ### Testing Minting
@@ -191,16 +200,16 @@ To test the hat minting service:
 
 ```bash
 # Request a hat minting (uses default values)
-forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast
+forge script script/Mint.s.sol --rpc-url http://localhost:8545 --broadcast
 
 # You can also provide custom parameters
-forge script script/MinterTest.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
+forge script script/Mint.s.sol --rpc-url http://localhost:8545 --broadcast --sig "run(address,uint256)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1
 ```
 
 Check the minting results:
 
 ```bash
-forge script script/CheckMinterResults.s.sol --rpc-url http://localhost:8545
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 3 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1 0
 ```
 
 ### Testing Hat Creation
@@ -209,19 +218,16 @@ To test the hat creation service:
 
 ```bash
 # Request a hat creation (uses default values)
-forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast
+forge script script/Create.s.sol --tc Create --rpc-url http://localhost:8545 --broadcast
 
 # You can also provide custom parameters
-forge script script/CreatorTest.s.sol --tc CreatorTest --rpc-url http://localhost:8545 --broadcast --sig "run(uint256,string,uint32,address,address,bool,string)" 281474976710656 "Custom Hat" 50 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 true "ipfs://QmCustomHash"
+forge script script/Create.s.sol --tc Create --rpc-url http://localhost:8545 --broadcast --sig "run(uint256,string,uint32,address,address,bool,string)" 281474976710656 "Custom Hat" 50 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 true "ipfs://QmCustomHash"
 ```
 
 Check the hat creation results:
 
 ```bash
-forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545
-
-# You can also specify a custom admin hat ID
-forge script script/CheckCreatorResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint256)" 281474976710656
+forge script script/CheckResults.s.sol --rpc-url http://localhost:8545 --sig "run(uint8,address,uint256,uint256)" 4 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0 0
 ```
 
 The hat creation process involves:
@@ -230,4 +236,4 @@ The hat creation process involves:
 2. It then requests hat creation through the HatsAvsHatter contract
 3. WAVS operators detect the request and process it off-chain
 4. The result is then submitted back on-chain
-5. You can check if the hat was created successfully using the CheckCreatorResults script
+5. You can check if the hat was created successfully using the CheckResults script

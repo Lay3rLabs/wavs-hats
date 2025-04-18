@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.28;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
@@ -9,10 +9,10 @@ import {Utils} from "./Utils.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 
 /**
- * @title CreatorTest
+ * @title Create
  * @notice Simplified script to test the HatsAvsHatter contract
  */
-contract CreatorTest is Script {
+contract Create is Script {
     // Define constants
     string constant DEFAULT_DETAILS = "Child Hat created via WAVS AVS";
     uint32 constant DEFAULT_MAX_SUPPLY = 100;

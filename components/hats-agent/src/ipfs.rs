@@ -7,14 +7,6 @@ use std::{
 use wstd::http::{IntoBody, Request};
 use wstd::io::AsyncRead;
 
-/// TODO actually store file? REFACTOR ME
-// async fn download_file(cid: &str, ipfs_url: &str) -> Result<String> {
-//     let url = format!("{}/api/v0/cat?arg={}", ipfs_url, cid);
-//     let response = wstd::http::Client::new().get(url).await?;
-//     let body = response.text().await?;
-//     Ok(body)
-// }
-
 /// Uploads a file using multipart request to IPFS
 async fn upload_to_ipfs(file_path: &str, ipfs_url: &str) -> Result<String> {
     let api_key = std::env::var("WAVS_ENV_LIGHTHOUSE_API_KEY")

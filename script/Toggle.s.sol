@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.28;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
@@ -8,10 +8,10 @@ import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
- * @title ToggleTest
+ * @title Toggle
  * @notice Script to test the Hats Protocol WAVS AVS toggle integration
  */
-contract ToggleTest is Script {
+contract Toggle is Script {
     // Define constants
     uint256 constant DEFAULT_HAT_ID = 1;
 
