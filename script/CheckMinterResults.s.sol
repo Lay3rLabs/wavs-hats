@@ -3,13 +3,13 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsAVSMinter} from "../src/contracts/HatsAVSMinter.sol";
+import {HatsAvsMinter} from "../src/contracts/HatsAvsMinter.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
 import {Utils} from "./Utils.sol";
 
 /**
  * @title CheckMinterResults
- * @notice Script to check the results of HatsAVSMinter operations
+ * @notice Script to check the results of HatsAvsMinter operations
  */
 contract CheckMinterResults is Script {
     // Define constants

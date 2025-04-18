@@ -3,8 +3,8 @@ pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {HatsEligibilityServiceHandler} from "../src/contracts/HatsEligibilityServiceHandler.sol";
-import {ITypes} from "../src/interfaces/ITypes.sol";
+import {HatsAvsEligibilityModule} from "../src/contracts/HatsAvsEligibilityModule.sol";
+import {IHatsAvsTypes} from "../src/interfaces/IHatsAvsTypes.sol";
 import {Utils} from "./Utils.sol";
 
 /**
@@ -32,7 +32,7 @@ contract EligibilityTest is Script {
     function run(address _account, uint256 _hatId) public {
         // Get deployment addresses from environment
         address eligibilityHandlerAddr = vm.envAddress(
-            "HATS_ELIGIBILITY_SERVICE_HANDLER"
+            "HATS_AVS_ELIGIBILITY_MODULE"
         );
 
         console.log(
@@ -43,9 +43,9 @@ contract EligibilityTest is Script {
         console.log("Test hat ID:", _hatId);
 
         // Create contract instance
-        HatsEligibilityServiceHandler eligibilityHandler = HatsEligibilityServiceHandler(
-                eligibilityHandlerAddr
-            );
+        HatsAvsEligibilityModule eligibilityHandler = HatsAvsEligibilityModule(
+            eligibilityHandlerAddr
+        );
 
         (uint256 privateKey, ) = Utils.getPrivateKey(vm);
 
@@ -80,17 +80,17 @@ contract EligibilityTest is Script {
      * @param _hatId The hat ID to use
      */
     function _testEligibility(
-        HatsEligibilityServiceHandler _handler,
+        HatsAvsEligibilityModule _handler,
         address _account,
         uint256 _hatId
     ) internal {
         console.log("\nTesting eligibility check");
         try _handler.requestEligibilityCheck(_account, _hatId) returns (
-            ITypes.TriggerId eligibilityTriggerId
+            uint64 eligibilityTriggerId
         ) {
             console.log(
                 "Eligibility check requested with triggerId:",
-                uint64(ITypes.TriggerId.unwrap(eligibilityTriggerId))
+                uint64(eligibilityTriggerId)
             );
         } catch Error(string memory reason) {
             console.log("Eligibility check request failed:", reason);

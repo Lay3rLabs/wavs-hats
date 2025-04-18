@@ -1,0 +1,52 @@
+[package]
+name = "hats-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+ollama = [] # Feature flag for testing Ollama integration
+openai = [] # Feature flag for testing OpenAI integration
+
+[dependencies]
+wavs-wasi-chain = { workspace = true }
+wstd = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+wit-bindgen-rt = { workspace = true, features = ["bitflags"] }
+alloy-sol-macro = { workspace = true }
+alloy-sol-types = { workspace = true }
+hex = "0.4.3"
+ethabi = "18.0.0"
+primitive-types = "0.13.1"
+alloy-primitives = "0.8.25"
+base64 = "0.22.1"
+cid = "0.10.1"
+multihash = "0.18.1"
+alloy-network = "0.11.1"
+alloy-provider = { version = "0.11.1", default-features = false, features = ["rpc-api"] }
+alloy-rpc-types = "0.11.1"
+alloy-transport-http = { version = "0.11.1", default-features = false }
+url = "2.3.1"
+
+[dev-dependencies]
+mockall = "0.11"
+env_logger = "0.11"
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[package.metadata.component]
+package = "component:hats-agent"
+target = "wavs:worker/layer-trigger-world@0.3.0"

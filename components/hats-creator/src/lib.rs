@@ -8,36 +8,7 @@ use bindings::{
 };
 use wavs_wasi_chain::{decode_event_log_data, ethereum::alloy_primitives::Uint};
 
-sol! {
-    type TriggerId is uint64;
-
-    #[derive(Debug)]
-    event HatCreationTrigger(
-        uint64 indexed triggerId,
-        address indexed creator,
-        uint256 indexed admin,
-        string details,
-        uint32 maxSupply,
-        address eligibility,
-        address toggle,
-        bool mutable_,
-        string imageURI
-    );
-
-    #[derive(Debug)]
-    struct HatCreationData {
-        uint256 admin;
-        string details;
-        uint32 maxSupply;
-        address eligibility;
-        address toggle;
-        bool mutable_;
-        string imageURI;
-        address requestor;
-        uint256 hatId;
-        bool success;
-    }
-}
+sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 struct Component;
 
@@ -46,7 +17,7 @@ impl Guest for Component {
         match trigger_action.data {
             TriggerData::EthContractEvent(TriggerDataEthContractEvent { log, .. }) => {
                 // Decode the HatCreationTrigger event
-                let HatCreationTrigger {
+                let IHatsAvsTypes::HatCreationTrigger {
                     triggerId,
                     creator,
                     admin,
@@ -67,7 +38,7 @@ impl Guest for Component {
                 eprintln!("Max supply: {}", maxSupply);
 
                 // Create HatCreationData with the extracted data
-                let result = HatCreationData {
+                let result = IHatsAvsTypes::HatCreationData {
                     admin,
                     details,
                     maxSupply,
