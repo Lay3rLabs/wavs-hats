@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.28;
 
 import {HatsToggleModule} from "@hats-module/src/HatsToggleModule.sol";
 import {IHats} from "hats-protocol/Interfaces/IHats.sol";
