@@ -1,7 +1,6 @@
 #[allow(warnings)]
 mod bindings;
 mod evm;
-mod image;
 mod ipfs;
 mod llm;
 mod nft;
