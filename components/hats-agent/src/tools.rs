@@ -1,6 +1,5 @@
 use crate::llm::LLMClient;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 /// Function parameter for tool calls
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,42 +263,14 @@ pub async fn process_tool_calls(
     }
 
     if is_ollama {
-        // For Ollama: Use a better approach that encourages tool use
-        println!("Using improved Ollama-specific tool result handling");
-        let mut simple_messages = initial_messages;
+        // For Ollama: Don't make a second call, just use the tool result directly
+        println!("Using direct tool result handling for Ollama");
 
-        // Add the original response without tool_calls to avoid confusing Ollama
-        let clean_response = Message {
-            role: "assistant".to_string(),
-            content: Some("I'll calculate that for you.".to_string()),
-            tool_calls: None,
-            tool_call_id: None,
-            name: None,
-        };
-        simple_messages.push(clean_response);
-
-        // Add the tool results as a separate message - NOT as a user message
-        let result_message = Message {
-            role: "assistant".to_string(),
-            content: Some(format!(
-                "The answer is: {}",
-                tool_results.join("\n").split("is ").last().unwrap_or("4").trim()
-            )),
-            tool_calls: None,
-            tool_call_id: None,
-            name: None,
-        };
-        simple_messages.push(result_message);
-
-        // Get final response - just extract the answer without tools this time
-        let final_response = client.chat_completion_text(&simple_messages).await?;
-        println!("Final response: {:?}", final_response);
-
-        // Return just the number if possible, otherwise the whole response
-        if let Some(number) = final_response.trim().parse::<f64>().ok() {
-            Ok(number.to_string())
+        if tool_results.len() == 1 {
+            Ok(tool_results[0].clone())
         } else {
-            Ok(final_response)
+            // For multiple tool calls, combine the results
+            Ok(tool_results.join("\n"))
         }
     } else {
         // For OpenAI: Use the standard tool calls protocol

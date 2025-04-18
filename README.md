@@ -9,8 +9,10 @@ TODO:
 - [x] Rename contracts to be nicer
 - [x] Remove unneeded trigger logic code
 - [x] Make agent support both openai and llama (struggling with environment variable testing)
-- [ ] Refactor script names and consolidate
-- [ ] Make agent support tools
+- [x] Refactor script names and consolidate
+- [x] Make agent support tools
+- [ ] Support more Open AI models
+- [ ] Add hats address KV
 - [ ] Deploy hats with zodiac + safe
 - [ ] Deploy hats with eligibility module chaining
 - [ ] Chain staking eligibility module and AVS eligibility module (bonus)

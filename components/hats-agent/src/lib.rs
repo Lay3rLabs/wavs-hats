@@ -24,10 +24,8 @@ sol!("../../src/interfaces/IHatsAvsTypes.sol");
 
 use crate::llm::LLMClient;
 use crate::tools::builders;
-use crate::tools::handlers;
-use crate::tools::{Message, Tool};
+use crate::tools::Message;
 use crate::IHatsAvsTypes::{DataWithId, NewTrigger};
-use serde_json::json;
 
 #[derive(Default)]
 pub struct Component;
@@ -61,18 +59,19 @@ impl Guest for Component {
         let prompt = std::str::from_utf8(&trigger_info.data)
             .map_err(|e| format!("Failed to decode prompt from bytes: {}", e))?;
 
-        // TODO get system prompt, model, and user prompt from hats nfts tokenURI
-
         // Process the prompt using the LLM client
         let result = block_on(async {
-            // Use Ollama model if WAVS_ENV_OPENAI_API_KEY is not set, otherwise use OpenAI model
+            // TODO get system prompt, model, and user prompt from hats nfts tokenURI
             let model = "llama3.2";
-            println!("Using model: {}", model);
-            let client = LLMClient::new(model)
-                .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
 
-            // Define available tools using the helper functions
-            let available_tools = vec![builders::calculator()];
+            // Example JSON configuration
+            let config_json = r#"{
+                "temperature": 0.0,
+                "top_p": 0.9,
+                "seed": 42,
+                "max_tokens": 500,
+                "context_window": 4096
+            }"#;
 
             // Create messages
             let messages = vec![
@@ -83,7 +82,12 @@ impl Guest for Component {
                 Message::new_user(prompt.to_string()),
             ];
 
-            println!("Sending request to {} with tools", model);
+            // Create client directly from JSON configuration
+            let client = LLMClient::from_json(model, config_json)
+                .map_err(|e| format!("Failed to initialize LLM client: {}", e))?;
+
+            // Define available tools using the helper functions
+            let available_tools = vec![builders::calculator()];
 
             // Send request with tools
             let mut response = client.chat_completion(&messages, Some(&available_tools)).await?;
@@ -109,8 +113,6 @@ impl Guest for Component {
             }
         })
         .map_err(|e| format!("Failed to get chat completion: {}", e))?;
-
-        println!("Result: {:?}", result);
 
         // Return the result encoded as DataWithId
         let encoded = DataWithId {
