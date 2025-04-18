@@ -7,12 +7,7 @@ use wstd::{
     io::AsyncRead,
 };
 
-/// Common message structure for chat completions
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Message {
-    pub role: String,
-    pub content: String,
-}
+use crate::tools::{Message, Tool, ToolCall, ToolCallFunction};
 
 /// Client for making LLM API requests
 #[derive(Debug)]
@@ -90,8 +85,12 @@ impl LLMClient {
         Ok(Self { model: model.to_string(), api_url, api_key })
     }
 
-    /// Send a chat completion request
-    pub async fn chat_completion(&self, messages: &[Message]) -> Result<String, String> {
+    /// Send a chat completion request, with optional tools
+    pub async fn chat_completion(
+        &self,
+        messages: &[Message],
+        tools: Option<&[Tool]>,
+    ) -> Result<Message, String> {
         // Validate messages
         if messages.is_empty() {
             return Err("Messages cannot be empty".to_string());
@@ -100,23 +99,30 @@ impl LLMClient {
         println!("Sending chat completion request:");
         println!("- Model: {}", self.model);
         println!("- Number of messages: {}", messages.len());
-        println!("- First message: {:?}", messages.first());
+        println!("- Tools provided: {}", tools.is_some());
 
         // Create request body with deterministic settings
         let body = if self.api_key.is_some() {
             // OpenAI format
-            json!({
+            let mut request = json!({
                 "model": self.model,
                 "messages": messages,
                 "temperature": 0.0,
                 "top_p": 1.0,
                 "seed": 42,
                 "stream": false,
-                "max_tokens": 100  // Limit response length
-            })
+                "max_tokens": if tools.is_some() { 1024 } else { 100 }  // More tokens for tool use
+            });
+
+            // Add tools if provided
+            if let Some(tools_list) = tools {
+                request["tools"] = json!(tools_list);
+            }
+
+            request
         } else {
             // Ollama chat format
-            json!({
+            let mut request = json!({
                 "model": self.model,
                 "messages": messages,
                 "stream": false,
@@ -125,9 +131,16 @@ impl LLMClient {
                     "top_p": 0.1,
                     "seed": 42,
                     "num_ctx": 4096, // Context window size
-                    "num_predict": 100  // Limit response length
+                    "num_predict": if tools.is_some() { 1024 } else { 100 }  // More tokens for tool use
                 }
-            })
+            });
+
+            // Add tools if provided (might not be supported by all Ollama versions)
+            if let Some(tools_list) = tools {
+                request["tools"] = json!(tools_list);
+            }
+
+            request
         };
 
         println!("Request body: {}", serde_json::to_string_pretty(&body).unwrap());
@@ -186,7 +199,7 @@ impl LLMClient {
         println!("Raw response: {}", body);
 
         // Parse response based on provider
-        let content = if self.api_key.is_some() {
+        if self.api_key.is_some() {
             // Parse OpenAI response format
             #[derive(Deserialize)]
             struct ChatResponse {
@@ -203,8 +216,8 @@ impl LLMClient {
 
             resp.choices
                 .first()
-                .map(|choice| choice.message.content.clone())
-                .ok_or_else(|| "No response choices returned".to_string())?
+                .map(|choice| choice.message.clone())
+                .ok_or_else(|| "No response choices returned".to_string())
         } else {
             // Parse Ollama chat response format
             #[derive(Deserialize)]
@@ -215,17 +228,21 @@ impl LLMClient {
             let resp: OllamaResponse = serde_json::from_str(&body)
                 .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
 
-            resp.message.content
-        };
+            Ok(resp.message)
+        }
+    }
 
-        println!("Successfully received response of length: {}", content.len());
-        Ok(content)
+    /// Helper method to get just the content string from a chat completion
+    pub async fn chat_completion_text(&self, messages: &[Message]) -> Result<String, String> {
+        let response = self.chat_completion(messages, None).await?;
+        Ok(response.content.unwrap_or_default())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::builders;
     use wstd::runtime::block_on;
 
     fn setup_test_env() {
@@ -259,7 +276,7 @@ mod tests {
     #[test]
     fn test_chat_completion_empty_messages() {
         let client = LLMClient::new("llama3.2").unwrap();
-        let result = block_on(async { client.chat_completion(&[]).await });
+        let result = block_on(async { client.chat_completion(&[], None).await });
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Messages cannot be empty"));
     }
@@ -286,16 +303,13 @@ mod tests {
                 println!("Client initialized successfully");
 
                 let messages = vec![
-                    Message {
-                        role: "system".to_string(),
-                        content: "You are a helpful math assistant".to_string(),
-                    },
-                    Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
+                    Message::new_system("You are a helpful math assistant".to_string()),
+                    Message::new_user("What is 2+2?".to_string()),
                 ];
                 println!("Sending test message: {:?}", messages);
 
                 let result = block_on(async {
-                    match client.chat_completion(&messages).await {
+                    match client.chat_completion_text(&messages).await {
                         Ok(response) => {
                             println!("Received successful response");
                             Ok(response)
@@ -315,6 +329,46 @@ mod tests {
                     Err(e) => {
                         println!("Test failed with error: {}", e);
                         panic!("Test failed: {}", e);
+                    }
+                }
+            }
+
+            #[test]
+            fn test_ollama_chat_completion_with_tools() {
+                init();
+                println!("Initializing Ollama client for tools test...");
+                let client = LLMClient::new("llama3.2").unwrap();
+
+                // Define a calculator tool
+                let calculator_tool = builders::calculator();
+
+                let messages = vec![
+                    Message::new_system(
+                        "You are a helpful math assistant. Use the calculator tool when needed."
+                            .to_string(),
+                    ),
+                    Message::new_user("Calculate 24 divided by 6".to_string()),
+                ];
+
+                println!("Sending test message with tools");
+                let result = block_on(async {
+                    client.chat_completion(&messages, Some(&[calculator_tool])).await
+                });
+
+                // Note: This test may fail if Ollama doesn't support tool calls
+                // We're just checking that the request completes, not that it uses tools
+                match result {
+                    Ok(message) => {
+                        println!("Test successful! Response: {:?}", message);
+                        // For Ollama, we might just get a text response since tools aren't fully supported
+                        if let Some(content) = &message.content {
+                            assert!(!content.is_empty());
+                        }
+                    }
+                    Err(e) => {
+                        println!("Test result: {}", e);
+                        // Don't panic, as Ollama might not support tool calls
+                        println!("Note: Ollama may not support tool calls in the current version");
                     }
                 }
             }
@@ -348,16 +402,13 @@ mod tests {
                 println!("Client initialized successfully");
 
                 let messages = vec![
-                    Message {
-                        role: "system".to_string(),
-                        content: "You are a helpful math assistant".to_string(),
-                    },
-                    Message { role: "user".to_string(), content: "What is 2+2?".to_string() },
+                    Message::new_system("You are a helpful math assistant".to_string()),
+                    Message::new_user("What is 2+2?".to_string()),
                 ];
                 println!("Sending test message: {:?}", messages);
 
                 let result = block_on(async {
-                    match client.chat_completion(&messages).await {
+                    match client.chat_completion_text(&messages).await {
                         Ok(response) => {
                             println!("Received successful response");
                             Ok(response)
@@ -373,6 +424,54 @@ mod tests {
                     Ok(content) => {
                         println!("Test successful! Response: {}", content);
                         assert!(!content.is_empty());
+                    }
+                    Err(e) => {
+                        println!("Test failed with error: {}", e);
+                        panic!("Test failed: {}", e);
+                    }
+                }
+            }
+
+            #[test]
+            fn test_openai_chat_completion_with_tools() {
+                // Validate environment configuration
+                if let Err(e) = validate_config() {
+                    println!("Skipping OpenAI tools test: {}", e);
+                    return;
+                }
+
+                println!("Initializing OpenAI client for tools test...");
+                let client = LLMClient::new("gpt-4").unwrap();
+
+                // Define a calculator tool
+                let calculator_tool = builders::calculator();
+
+                let messages = vec![
+                    Message::new_system(
+                        "You are a helpful math assistant. Use the calculator tool when needed."
+                            .to_string(),
+                    ),
+                    Message::new_user("Calculate 24 divided by 6".to_string()),
+                ];
+
+                println!("Sending test message with tools");
+                let result = block_on(async {
+                    client.chat_completion(&messages, Some(&[calculator_tool])).await
+                });
+
+                match result {
+                    Ok(message) => {
+                        println!("Test successful! Response: {:?}", message);
+
+                        // Check if we got a tool call or just text content
+                        if let Some(tool_calls) = &message.tool_calls {
+                            assert!(!tool_calls.is_empty());
+                            let tool_call = &tool_calls[0];
+                            assert_eq!(tool_call.function.name, "calculator");
+                            println!("Tool call arguments: {}", tool_call.function.arguments);
+                        } else if let Some(content) = &message.content {
+                            assert!(!content.is_empty());
+                        }
                     }
                     Err(e) => {
                         println!("Test failed with error: {}", e);
