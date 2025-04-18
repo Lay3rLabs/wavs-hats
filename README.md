@@ -11,7 +11,7 @@ TODO:
 - [x] Make agent support both openai and llama (struggling with environment variable testing)
 - [x] Refactor script names and consolidate
 - [x] Make agent support tools
-- [ ] Support more Open AI models
+- [x] Support more Open AI models
 - [ ] Add hats address KV
 - [ ] Deploy hats with zodiac + safe
 - [ ] Deploy hats with eligibility module chaining

@@ -145,8 +145,10 @@ impl LLMClient {
 
         // Get API key if using OpenAI models
         let api_key = match model {
-            "gpt-3.5-turbo" | "gpt-4" => Some(get_required_var("WAVS_ENV_OPENAI_API_KEY")?),
-            _ => None, // Ollama doesn't need an API key
+            "gpt-3.5-turbo" | "gpt-4" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4-turbo" => {
+                Some(get_required_var("WAVS_ENV_OPENAI_API_KEY")?)
+            }
+            _ => None, // Local models don't need an API key
         };
 
         // Set API URL based on model type
